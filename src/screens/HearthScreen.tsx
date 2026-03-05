@@ -8,57 +8,149 @@ import {
   Pressable,
 } from 'react-native';
 import Animated, {
-  FadeIn,
   FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withSequence,
-  withTiming,
-  withDelay,
+  FadeIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Plus, Bell, SquaresFour, Rows } from 'phosphor-react-native';
+import * as Haptics from 'expo-haptics';
 import { colors, typography, spacing } from '../theme';
 import { ShelfRow } from '../components/ShelfRow';
 import { Album } from '../types/album';
 import { AlbumPulloutOverlay } from '../components/AlbumPulloutOverlay';
-import { dummyAlbums } from '../utils/dummyAlbums';
+import { RootStackParamList } from '../types/navigation';
+import { useAlbumStore } from '../store/AlbumStore';
+import { useNotificationStore } from '../store/NotificationStore';
+import { IconButton } from '../components/common';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// How many albums per shelf row (responsive)
+type Nav = NativeStackNavigationProp<RootStackParamList>;
+type ViewMode = 'shelf' | 'bento';
+
+// Shelf view constants
 const ALBUMS_PER_ROW = Math.floor((SCREEN_WIDTH - 40) / 85);
 const ALBUM_WIDTH = Math.floor((SCREEN_WIDTH - 40 - (ALBUMS_PER_ROW - 1) * 6) / ALBUMS_PER_ROW);
 
+// Bento grid constants
+const BENTO_GAP = 10;
+const BENTO_PAD = spacing.lg;
+const BENTO_COL_W = (SCREEN_WIDTH - BENTO_PAD * 2 - BENTO_GAP) / 2;
+
+function BentoCard({ album, index, onPress, size }: {
+  album: Album;
+  index: number;
+  onPress: (album: Album) => void;
+  size: 'large' | 'small';
+}) {
+  const h = size === 'large' ? BENTO_COL_W * 1.3 : BENTO_COL_W * 0.8;
+  const photoCount = album.pages?.reduce(
+    (s, p) => s + p.elements.filter(e => e.type === 'photo').length, 0
+  ) || 0;
+
+  return (
+    <Animated.View entering={FadeInDown.delay(80 + index * 60).duration(400)}>
+      <Pressable
+        style={[styles.bentoCard, { width: BENTO_COL_W, height: h }]}
+        onPress={() => onPress(album)}
+      >
+        <LinearGradient
+          colors={[album.coverColor, album.spineColor]}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        <View style={styles.bentoCardInner}>
+          <Text style={styles.bentoTitle} numberOfLines={2}>{album.title}</Text>
+          <View style={styles.bentoMeta}>
+            <Text style={styles.bentoMetaText}>{album.pageCount}p</Text>
+            {photoCount > 0 && <Text style={styles.bentoMetaText}>{photoCount}장</Text>}
+            {album.isShared && (
+              <View style={styles.bentoSharedDot} />
+            )}
+          </View>
+        </View>
+        {album.coverImage && (
+          <View style={styles.bentoCoverOverlay} />
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function HearthScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<Nav>();
+  const { albums } = useAlbumStore();
+  const { unreadCount } = useNotificationStore();
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('shelf');
 
-  // Split albums into shelf rows
+  // Shelf rows
   const shelfRows = useMemo(() => {
     const rows: Album[][] = [];
-    for (let i = 0; i < dummyAlbums.length; i += ALBUMS_PER_ROW) {
-      rows.push(dummyAlbums.slice(i, i + ALBUMS_PER_ROW));
+    for (let i = 0; i < albums.length; i += ALBUMS_PER_ROW) {
+      rows.push(albums.slice(i, i + ALBUMS_PER_ROW));
     }
     return rows;
-  }, []);
+  }, [albums]);
+
+  // Bento layout: alternating large/small pattern
+  const bentoItems = useMemo(() => {
+    const items: { album: Album; size: 'large' | 'small'; column: 0 | 1 }[] = [];
+    let leftH = 0;
+    let rightH = 0;
+    albums.forEach((album, i) => {
+      const isLarge = i % 3 === 0;
+      const size = isLarge ? 'large' : 'small';
+      const h = isLarge ? BENTO_COL_W * 1.3 : BENTO_COL_W * 0.8;
+      // Place in shorter column
+      if (leftH <= rightH) {
+        items.push({ album, size, column: 0 });
+        leftH += h + BENTO_GAP;
+      } else {
+        items.push({ album, size, column: 1 });
+        rightH += h + BENTO_GAP;
+      }
+    });
+    return items;
+  }, [albums]);
 
   const handleAlbumPress = useCallback((album: Album) => {
-    setSelectedAlbum(album);
+    if (viewMode === 'bento') {
+      navigation.navigate('AlbumViewer', { albumId: album.id });
+    } else {
+      setSelectedAlbum(album);
+    }
+  }, [viewMode, navigation]);
+
+  const handleAlbumOpen = useCallback(() => {
+    if (selectedAlbum) {
+      const album = selectedAlbum;
+      setSelectedAlbum(null);
+      setTimeout(() => {
+        navigation.navigate('AlbumViewer', { albumId: album.id });
+      }, 300);
+    }
+  }, [selectedAlbum, navigation]);
+
+  const toggleViewMode = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setViewMode(v => v === 'shelf' ? 'bento' : 'shelf');
   }, []);
 
   return (
     <View style={styles.root}>
-      {/* Warm background gradient — like a cozy room */}
       <LinearGradient
-        colors={['#E8DED0', '#D4C4AE', '#C8B898', '#BCA882']}
+        colors={['#FDFAF5', '#F7F2EA', '#F0E8DB', '#E8DFCF']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       />
 
-      {/* Subtle wall texture overlay */}
       <View style={styles.wallTexture} />
 
       {/* Header */}
@@ -66,27 +158,40 @@ export function HearthScreen() {
         entering={FadeInDown.delay(100).duration(600)}
         style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
-        {/* Profile avatar */}
-        <Pressable style={styles.avatarButton}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>찬</Text>
-          </View>
+        <Pressable style={styles.bellContainer} onPress={() => navigation.navigate('Notifications')}>
+          <Bell size={24} color={colors.textPrimary} />
+          {unreadCount > 0 && (
+            <View style={styles.bellBadge}>
+              <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          )}
         </Pressable>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Hearth</Text>
+          <Text style={styles.headerTitle}>Archive</Text>
           <Text style={styles.headerSubtitle}>
-            {dummyAlbums.length}개의 앨범
+            {albums.length}개의 앨범
           </Text>
         </View>
 
-        {/* Add album button */}
-        <Pressable style={styles.addButton}>
-          <Text style={styles.addButtonText}>+</Text>
-        </Pressable>
+        <View style={styles.headerRight}>
+          <IconButton onPress={toggleViewMode}>
+            {viewMode === 'shelf'
+              ? <SquaresFour size={22} color={colors.textSecondary} />
+              : <Rows size={22} color={colors.textSecondary} />}
+          </IconButton>
+          <IconButton
+            size={36}
+            backgroundColor={colors.accent}
+            onPress={() => navigation.navigate('CreateAlbum')}
+            style={styles.addButton}
+          >
+            <Plus size={20} color={colors.warmWhite} weight="bold" />
+          </IconButton>
+        </View>
       </Animated.View>
 
-      {/* Shelves */}
+      {/* Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[
@@ -95,44 +200,64 @@ export function HearthScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {shelfRows.map((row, rowIndex) => (
-          <Animated.View
-            key={rowIndex}
-            entering={FadeInDown.delay(200 + rowIndex * 100).duration(500)}
-          >
-            <ShelfRow
-              albums={row}
-              onAlbumPress={handleAlbumPress}
-              albumWidth={ALBUM_WIDTH}
-            />
-          </Animated.View>
-        ))}
+        {viewMode === 'shelf' ? (
+          <>
+            {shelfRows.map((row, rowIndex) => (
+              <Animated.View
+                key={rowIndex}
+                entering={FadeInDown.delay(200 + rowIndex * 100).duration(500)}
+              >
+                <ShelfRow
+                  albums={row}
+                  onAlbumPress={handleAlbumPress}
+                  albumWidth={ALBUM_WIDTH}
+                />
+              </Animated.View>
+            ))}
 
-        {/* Empty shelf at bottom for visual balance */}
-        <View style={styles.emptyShelf}>
-          <View style={styles.emptyShelfPlank}>
-            <View style={styles.woodGrain}>
-              <View style={[styles.grainLine, { top: 3 }]} />
-              <View style={[styles.grainLine, { top: 8 }]} />
-              <View style={[styles.grainLine, { top: 14 }]} />
+            <View style={styles.emptyShelf}>
+              <View style={styles.emptyShelfPlank}>
+                <View style={styles.woodGrain}>
+                  <View style={[styles.grainLine, { top: 3 }]} />
+                  <View style={[styles.grainLine, { top: 8 }]} />
+                  <View style={[styles.grainLine, { top: 14 }]} />
+                </View>
+                <View style={styles.emptyShelfFront} />
+              </View>
             </View>
-            <View style={styles.emptyShelfFront} />
-          </View>
-        </View>
+          </>
+        ) : (
+          <Animated.View entering={FadeIn.duration(300)} style={styles.bentoContainer}>
+            <View style={styles.bentoColumn}>
+              {bentoItems.filter(i => i.column === 0).map((item, idx) => (
+                <BentoCard
+                  key={item.album.id}
+                  album={item.album}
+                  index={idx}
+                  onPress={handleAlbumPress}
+                  size={item.size}
+                />
+              ))}
+            </View>
+            <View style={styles.bentoColumn}>
+              {bentoItems.filter(i => i.column === 1).map((item, idx) => (
+                <BentoCard
+                  key={item.album.id}
+                  album={item.album}
+                  index={idx}
+                  onPress={handleAlbumPress}
+                  size={item.size}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        )}
       </ScrollView>
 
-      {/* Page indicator dots at bottom */}
-      <View style={[styles.pageIndicator, { bottom: insets.bottom + 10 }]}>
-        <View style={[styles.dot, styles.dotActive]} />
-        <View style={styles.dot} />
-        <View style={styles.dot} />
-      </View>
-
-      {/* Album pull-out overlay */}
       {selectedAlbum && (
         <AlbumPulloutOverlay
           album={selectedAlbum}
-          onClose={() => setSelectedAlbum(null)}
+          onClose={handleAlbumOpen}
         />
       )}
     </View>
@@ -140,14 +265,11 @@ export function HearthScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
+  root: { flex: 1 },
   wallTexture: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
     opacity: 0.03,
-    // Simulating subtle texture
   },
   header: {
     flexDirection: 'row',
@@ -155,113 +277,116 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
   },
-  avatarButton: {
-    padding: 2,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.shelfDark,
+  bellContainer: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    color: colors.textOnDark,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  headerCenter: {
-    flex: 1,
+  bellBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.dustyRose,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 4,
   },
-  headerTitle: {
-    ...typography.title,
-    color: colors.textPrimary,
-    fontSize: 24,
+  bellBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.warmWhite,
   },
-  headerSubtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { ...typography.title, color: colors.textPrimary, fontSize: 24 },
+  headerSubtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
   },
-  addButtonText: {
-    color: colors.warmWhite,
-    fontSize: 22,
-    fontWeight: '400',
-    marginTop: -1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 8,
-  },
-  emptyShelf: {
-    marginTop: 20,
-  },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingTop: 8 },
+
+  // Shelf styles
+  emptyShelf: { marginTop: 20 },
   emptyShelfPlank: {
     height: 18,
-    backgroundColor: '#B89B78',
+    backgroundColor: colors.shelfLight,
     marginHorizontal: 8,
     borderRadius: 2,
     overflow: 'visible',
   },
-  woodGrain: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-    borderRadius: 2,
-  },
-  grainLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(160, 130, 90, 0.3)',
-  },
+  woodGrain: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', borderRadius: 2 },
+  grainLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: 'rgba(187, 166, 138, 0.25)' },
   emptyShelfFront: {
     position: 'absolute',
     bottom: -6,
     left: 0,
     right: 0,
     height: 6,
-    backgroundColor: '#A08258',
+    backgroundColor: colors.shelfMid,
     borderBottomLeftRadius: 2,
     borderBottomRightRadius: 2,
   },
-  pageIndicator: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
+
+  // Bento Grid styles
+  bentoContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    paddingHorizontal: BENTO_PAD,
+    gap: BENTO_GAP,
+  },
+  bentoColumn: {
+    flex: 1,
+    gap: BENTO_GAP,
+  },
+  bentoCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  bentoCardInner: {
+    flex: 1,
+    padding: 14,
+    justifyContent: 'flex-end',
+  },
+  bentoTitle: {
+    ...typography.body,
+    color: colors.textOnDark,
+    fontWeight: '700',
+    fontSize: 16,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  bentoMeta: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    marginTop: 4,
   },
-  dot: {
+  bentoMetaText: {
+    ...typography.caption,
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+  },
+  bentoSharedDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.textMuted,
-    opacity: 0.3,
+    backgroundColor: colors.sage,
   },
-  dotActive: {
-    opacity: 1,
-    backgroundColor: colors.textPrimary,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  bentoCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.1)',
   },
 });

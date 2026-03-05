@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     overflow: 'hidden',
     // Subtle shadow for depth
-    shadowColor: '#1C1208',
+    shadowColor: '#2C1F10',
     shadowOffset: { width: 2, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   bottomShadow: {
     height: 4,
     backgroundColor: 'transparent',
-    shadowColor: '#1C1208',
+    shadowColor: '#2C1F10',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,

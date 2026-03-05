@@ -13,6 +13,7 @@ import Animated, {
 import { HearthScreen } from '../screens/HearthScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { MyPageScreen } from '../screens/MyPageScreen';
+import { CapsulePageIndicator } from '../components/CapsulePageIndicator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -21,9 +22,10 @@ interface ScreenItem {
   component: React.ComponentType;
 }
 
+// Order: Friends(Hearth) ← Archive(center) → MyPage
 const screens: ScreenItem[] = [
-  { key: 'hearth', component: HearthScreen },
   { key: 'friends', component: FriendsScreen },
+  { key: 'archive', component: HearthScreen },
   { key: 'mypage', component: MyPageScreen },
 ];
 
@@ -33,11 +35,21 @@ const AnimatedFlatList = Animated.createAnimatedComponent(
 
 export function PageSwipeNavigator() {
   const scrollX = useSharedValue(0);
+  const isScrolling = useSharedValue(false);
   const flatListRef = useRef<FlatList<ScreenItem>>(null);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollX.value = event.contentOffset.x;
+    },
+    onBeginDrag: () => {
+      isScrolling.value = true;
+    },
+    onEndDrag: () => {
+      isScrolling.value = false;
+    },
+    onMomentumEnd: () => {
+      isScrolling.value = false;
     },
   });
 
@@ -78,7 +90,9 @@ export function PageSwipeNavigator() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         getItemLayout={getItemLayout}
+        initialScrollIndex={1}
       />
+      <CapsulePageIndicator scrollX={scrollX} isScrolling={isScrolling} />
     </View>
   );
 }
