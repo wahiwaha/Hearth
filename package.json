@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "eas-build-pre-install": "[ -n \"$GOOGLE_SERVICES_PLIST\" ] && cp \"$GOOGLE_SERVICES_PLIST\" ./GoogleService-Info.plist; [ -n \"$GOOGLE_SERVICES_JSON\" ] && cp \"$GOOGLE_SERVICES_JSON\" ./google-services.json; exit 0"
   },
   "dependencies": {
     "@gorhom/bottom-sheet": "^5.2.8",

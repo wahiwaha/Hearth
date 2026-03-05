@@ -14,7 +14,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wahiwaha.Hearth",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -35,21 +38,17 @@
       "expo-sharing",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-firebase/crashlytics",
-      "@react-native-firebase/messaging",
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "wahiwaha",
-          "project": "hearth"
-        }
-      ],
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "85bce88f-d2a5-4ee0-b66c-a69e8bea95fe"
+      }
+    }
   }
 }
