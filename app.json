@@ -38,6 +38,9 @@
       "expo-sharing",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/messaging",
+      "@sentry/react-native/expo",
       [
         "expo-notifications",
         {
