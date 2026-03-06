@@ -34,14 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
+      "./plugins/withFirebaseModularHeaders",
       "expo-font",
       "expo-sharing",
       "@react-native-firebase/app",
