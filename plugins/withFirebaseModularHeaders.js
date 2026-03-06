@@ -57,6 +57,22 @@ module.exports = function withFirebaseModularHeaders(config) {
     FileUtils.mkdir_p(grpc_private_dir)
     File.write(modulemap_path, "module gRPC_Core { }\\n")
   end
+
+  # Fix: Suppress non-modular-include-in-framework-module errors.
+  # use_modular_headers! causes CocoaPods to add -Werror=non-modular-include-in-framework-module
+  # to pod xcconfigs. The Xcode build setting CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES
+  # is not enough because xcconfig flags override it. We must add -Wno-non-modular-include-in-
+  # framework-module to OTHER_CFLAGS at the target level so it appears LAST in the compiler
+  # invocation (Clang uses last-flag-wins).
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+      cflags = config.build_settings.fetch('OTHER_CFLAGS', '$(inherited)')
+      unless cflags.include?('-Wno-non-modular-include-in-framework-module')
+        config.build_settings['OTHER_CFLAGS'] = "#{cflags} -Wno-non-modular-include-in-framework-module"
+      end
+    end
+  end
 `;
 
       if (!content.includes("gRPC-Core.modulemap")) {
