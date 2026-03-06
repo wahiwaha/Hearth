@@ -78,7 +78,7 @@ module.exports = function withFirebaseModularHeaders(config) {
       if (!content.includes("gRPC-Core.modulemap")) {
         // Find the existing post_install block and inject at the top of it
         content = content.replace(
-          /^(post_install do \|installer\|)/m,
+          /^(\s*post_install do \|installer\|)/m,
           `$1${grpcFixCode}`
         );
       }
