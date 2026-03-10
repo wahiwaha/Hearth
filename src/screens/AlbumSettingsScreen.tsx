@@ -30,7 +30,8 @@ import {
   Layout,
 } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { VisibilityLevel } from '../types/album';
@@ -39,13 +40,197 @@ import { WarmBackground, GlassCard, IconButton, Avatar } from '../components/com
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'AlbumSettings'>;
 
-const VISIBILITY_OPTIONS: { value: VisibilityLevel; label: string; desc: string; icon: React.ReactNode }[] = [
-  { value: 'private', label: '나만 보기', desc: '나만 볼 수 있어요', icon: <Lock size={20} color={colors.textSecondary} /> },
-  { value: 'friends', label: '친구 공개', desc: '친구에게만 공개해요', icon: <Users size={20} color={colors.textSecondary} /> },
-  { value: 'public', label: '전체 공개', desc: '모든 사람이 볼 수 있어요', icon: <Globe size={20} color={colors.textSecondary} /> },
-];
-
 export function AlbumSettingsScreen() {
+  const colors = useColors();
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      color: c.textPrimary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+
+    section: { marginBottom: spacing.md },
+    sectionLabel: {
+      ...typography.label,
+      color: c.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    sectionHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+
+    // Title
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    titleText: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '500',
+      fontSize: 18,
+    },
+    editTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    titleInput: {
+      ...typography.body,
+      color: c.textPrimary,
+      flex: 1,
+      borderBottomWidth: 1.5,
+      borderBottomColor: c.accent,
+      paddingVertical: 4,
+      fontSize: 18,
+    },
+    saveText: {
+      ...typography.caption,
+      color: c.accent,
+      fontWeight: '600',
+    },
+
+    // Visibility
+    visibilityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+    },
+    visibilityText: {
+      flex: 1,
+      marginLeft: 14,
+    },
+    visibilityLabel: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '500',
+    },
+    visibilityDesc: {
+      ...typography.caption,
+      color: c.textMuted,
+      marginTop: 1,
+    },
+    radio: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      borderWidth: 2,
+      borderColor: c.textMuted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    radioActive: {
+      borderColor: c.accent,
+    },
+    radioInner: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: c.accent,
+    },
+
+    // Collaborators
+    inviteBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 4,
+      paddingHorizontal: 10,
+      borderRadius: 8,
+      backgroundColor: 'rgba(196, 139, 53, 0.1)',
+    },
+    inviteBtnText: {
+      ...typography.caption,
+      color: c.accent,
+      fontWeight: '600',
+    },
+    collaboratorRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+    },
+    collaboratorInfo: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    collaboratorName: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '500',
+    },
+    collaboratorRole: {
+      ...typography.caption,
+      color: c.textMuted,
+    },
+    removeText: {
+      ...typography.caption,
+      color: '#E57373',
+      fontWeight: '500',
+    },
+    emptyCollaborators: {
+      ...typography.caption,
+      color: c.textMuted,
+      textAlign: 'center',
+      paddingVertical: 12,
+    },
+
+    // Menu rows
+    menuRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+    },
+    menuLabel: {
+      ...typography.body,
+      color: c.textPrimary,
+      flex: 1,
+      marginLeft: 14,
+    },
+    menuValue: {
+      ...typography.caption,
+      color: c.textMuted,
+    },
+    menuDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: c.divider,
+    },
+
+    // Delete
+    deleteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 16,
+      marginTop: spacing.md,
+    },
+    deleteText: {
+      ...typography.body,
+      color: '#E57373',
+      fontWeight: '500',
+    },
+  }));
+
+  const VISIBILITY_OPTIONS: { value: VisibilityLevel; label: string; desc: string; icon: React.ReactNode }[] = [
+    { value: 'private', label: '나만 보기', desc: '나만 볼 수 있어요', icon: <Lock size={20} color={colors.textSecondary} /> },
+    { value: 'friends', label: '친구 공개', desc: '친구에게만 공개해요', icon: <Users size={20} color={colors.textSecondary} /> },
+    { value: 'public', label: '전체 공개', desc: '모든 사람이 볼 수 있어요', icon: <Globe size={20} color={colors.textSecondary} /> },
+  ];
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -186,7 +371,7 @@ export function AlbumSettingsScreen() {
 
             {(album.collaborators || []).map((collab) => (
               <View key={collab.id} style={styles.collaboratorRow}>
-                <Avatar initial={collab.initial} color={collab.avatarColor} size={36} />
+                <Avatar initial={collab.initial} color={collab.avatarColor} imageUrl={collab.avatarUrl} size={36} />
                 <View style={styles.collaboratorInfo}>
                   <Text style={styles.collaboratorName}>{collab.name}</Text>
                   <Text style={styles.collaboratorRole}>
@@ -273,185 +458,3 @@ export function AlbumSettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-
-  section: { marginBottom: spacing.md },
-  sectionLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-
-  // Title
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  titleText: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-    fontSize: 18,
-  },
-  editTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  titleInput: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.accent,
-    paddingVertical: 4,
-    fontSize: 18,
-  },
-  saveText: {
-    ...typography.caption,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-
-  // Visibility
-  visibilityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  visibilityText: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  visibilityLabel: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  visibilityDesc: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.textMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioActive: {
-    borderColor: colors.accent,
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.accent,
-  },
-
-  // Collaborators
-  inviteBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: 'rgba(196, 139, 53, 0.1)',
-  },
-  inviteBtnText: {
-    ...typography.caption,
-    color: colors.accent,
-    fontWeight: '600',
-  },
-  collaboratorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  collaboratorInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  collaboratorName: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  collaboratorRole: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  removeText: {
-    ...typography.caption,
-    color: '#E57373',
-    fontWeight: '500',
-  },
-  emptyCollaborators: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: 12,
-  },
-
-  // Menu rows
-  menuRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  menuLabel: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-    marginLeft: 14,
-  },
-  menuValue: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  menuDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
-  },
-
-  // Delete
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    marginTop: spacing.md,
-  },
-  deleteText: {
-    ...typography.body,
-    color: '#E57373',
-    fontWeight: '500',
-  },
-});

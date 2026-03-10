@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   ScrollView,
   Pressable,
@@ -18,7 +17,8 @@ import {
   ImageSquare,
   Users,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { WarmBackground, IconButton, GlassCard } from '../components/common';
@@ -38,6 +38,182 @@ const SPINE_COLORS = [
 ];
 
 export function CreateAlbumScreen() {
+  const colors = useColors();
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      color: c.textPrimary,
+    },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+
+    // Preview
+    previewContainer: { alignItems: 'center', marginBottom: spacing.xl },
+    previewCover: {
+      width: 160,
+      height: 220,
+      borderRadius: 8,
+      flexDirection: 'row',
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 3, height: 6 },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    previewSpine: {
+      width: 16,
+      borderTopLeftRadius: 8,
+      borderBottomLeftRadius: 8,
+    },
+    previewContent: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    previewTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginVertical: 12,
+    },
+    previewLine: {
+      width: '60%',
+      height: 1.5,
+      borderRadius: 1,
+      opacity: 0.3,
+    },
+    previewHighlight: {
+      position: 'absolute',
+      top: 0,
+      left: 16,
+      right: 0,
+      height: '45%',
+      backgroundColor: 'rgba(255,248,232,0.03)',
+      borderTopRightRadius: 8,
+    },
+
+    // Sections
+    section: { marginBottom: spacing.md },
+    sectionLabel: {
+      ...typography.label,
+      color: c.textSecondary,
+      marginBottom: spacing.sm,
+    },
+    titleInput: {
+      ...typography.body,
+      color: c.textPrimary,
+      borderBottomWidth: 1.5,
+      borderBottomColor: c.divider,
+      paddingVertical: spacing.sm,
+      fontSize: 18,
+    },
+    charCount: {
+      ...typography.caption,
+      color: c.textMuted,
+      textAlign: 'right',
+      marginTop: 4,
+    },
+
+    // Color grid
+    colorGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    colorOption: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    colorSelected: {
+      borderWidth: 2.5,
+      borderColor: c.textPrimary,
+      shadowOpacity: 0.12,
+      shadowRadius: 4,
+    },
+
+    // Options
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    optionText: {
+      flex: 1,
+      marginLeft: 14,
+    },
+    optionLabel: {
+      ...typography.body,
+      color: c.textPrimary,
+      fontWeight: '500',
+    },
+    optionDesc: {
+      ...typography.caption,
+      color: c.textMuted,
+      marginTop: 2,
+    },
+    toggle: {
+      width: 48,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: c.divider,
+      justifyContent: 'center',
+      paddingHorizontal: 3,
+    },
+    toggleActive: {
+      backgroundColor: c.sage,
+    },
+    toggleDot: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: '#fff',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+    },
+    toggleDotActive: {
+      alignSelf: 'flex-end',
+    },
+
+    // Create button
+    createButton: {
+      backgroundColor: c.accent,
+      paddingVertical: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: spacing.md,
+      shadowColor: c.accent,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.15,
+      shadowRadius: 5,
+      elevation: 4,
+    },
+    createButtonText: {
+      ...typography.body,
+      color: c.warmWhite,
+      fontWeight: '600',
+      fontSize: 17,
+    },
+  }));
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const { createAlbum } = useAlbumStore();
@@ -190,177 +366,3 @@ export function CreateAlbumScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
-
-  // Preview
-  previewContainer: { alignItems: 'center', marginBottom: spacing.xl },
-  previewCover: {
-    width: 160,
-    height: 220,
-    borderRadius: 8,
-    flexDirection: 'row',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 3, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  previewSpine: {
-    width: 16,
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-  },
-  previewContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  previewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginVertical: 12,
-  },
-  previewLine: {
-    width: '60%',
-    height: 1.5,
-    borderRadius: 1,
-    opacity: 0.5,
-  },
-  previewHighlight: {
-    position: 'absolute',
-    top: 0,
-    left: 16,
-    right: 0,
-    height: '45%',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderTopRightRadius: 8,
-  },
-
-  // Sections
-  section: { marginBottom: spacing.md },
-  sectionLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  titleInput: {
-    ...typography.body,
-    color: colors.textPrimary,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.divider,
-    paddingVertical: spacing.sm,
-    fontSize: 18,
-  },
-  charCount: {
-    ...typography.caption,
-    color: colors.textMuted,
-    textAlign: 'right',
-    marginTop: 4,
-  },
-
-  // Color grid
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  colorOption: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  colorSelected: {
-    borderWidth: 3,
-    borderColor: colors.warmWhite,
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-
-  // Options
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  optionText: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  optionLabel: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-  optionDesc: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.divider,
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  toggleActive: {
-    backgroundColor: colors.sage,
-  },
-  toggleDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  toggleDotActive: {
-    alignSelf: 'flex-end',
-  },
-
-  // Create button
-  createButton: {
-    backgroundColor: colors.accent,
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: spacing.md,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  createButtonText: {
-    ...typography.body,
-    color: colors.warmWhite,
-    fontWeight: '600',
-    fontSize: 17,
-  },
-});

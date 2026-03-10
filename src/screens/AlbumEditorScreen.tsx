@@ -53,7 +53,8 @@ import {
   Eraser,
   FloppyDisk,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { PageElement, DrawingPath } from '../types/album';
@@ -90,7 +91,7 @@ const STICKER_CATEGORIES = [
 ] as const;
 
 const BG_COLORS = [
-  '#FDFAF5', '#F7F2EA', '#F0E8DB', '#FFF8F0', '#F5F0E8',
+  '#F4EDE2', '#EAE0D0', '#E0D2BC', '#F0E4D0', '#E8DCC8',
   '#FFF0E8', '#F0F5E8', '#E8F0F5', '#F5E8F0', '#F0E8E8',
   '#E8E8F0', '#F5F5E0', '#DDD0B8', '#D4C8B0',
   '#C4919A', '#7B8FA3', '#92A888', '#D4A855', '#A898B8', '#B8917A',
@@ -104,6 +105,263 @@ const DRAWING_COLORS = [
 const DRAWING_WIDTHS = [2, 4, 8, 12];
 
 export function AlbumEditorScreen() {
+  const colors = useColors();
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    notFound: { ...typography.body, color: c.textMuted, textAlign: 'center', marginTop: 100 },
+
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.md,
+      paddingBottom: 4,
+    },
+    headerTitle: {
+      ...typography.body,
+      color: c.textSecondary,
+      flex: 1,
+      textAlign: 'center',
+      fontWeight: '500',
+    },
+    headerActions: { flexDirection: 'row', gap: 2 },
+
+    // Element actions
+    elementActions: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      paddingHorizontal: spacing.md,
+      paddingVertical: 4,
+      gap: 6,
+    },
+    actionChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: c.cardBg,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: c.divider,
+    },
+    actionChipText: { ...typography.caption, color: c.textSecondary, fontSize: 11 },
+
+    // Canvas
+    canvasContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    canvas: {
+      borderRadius: 12,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 8,
+    },
+    element: {
+      position: 'absolute',
+      overflow: 'hidden',
+    },
+    elementSelected: {
+      borderWidth: 2,
+      borderColor: c.accent,
+      borderStyle: 'dashed',
+      borderRadius: 4,
+    },
+    photoWrapper: { width: '100%', height: '100%', borderRadius: 4, overflow: 'hidden' },
+    photoElement: { width: '100%', height: '100%' },
+    blurredPhoto: { opacity: 0.3 },
+    blurOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(240, 232, 219, 0.7)',
+      borderRadius: 4,
+    },
+    stickerElement: { textAlign: 'center' },
+    textElement: { padding: 4 },
+    drawDot: { position: 'absolute' },
+    resizeHandle: {
+      position: 'absolute',
+      bottom: -4,
+      right: -4,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: c.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.2,
+      shadowRadius: 2,
+      elevation: 3,
+    },
+    emptyCanvas: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyCanvasText: { ...typography.body, color: c.textMuted, textAlign: 'center', lineHeight: 24 },
+
+    // Drawing toolbar
+    drawToolbar: {
+      paddingVertical: 8,
+      paddingHorizontal: spacing.md,
+      backgroundColor: c.cardBg,
+      marginHorizontal: spacing.md,
+      borderRadius: 16,
+      marginBottom: 4,
+    },
+    drawToolRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    drawColorDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+    },
+    drawColorDotActive: {
+      borderWidth: 3,
+      borderColor: c.accent,
+    },
+    drawDivider: { width: 1, height: 24, backgroundColor: c.divider, marginHorizontal: 4 },
+    drawWidthBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    drawWidthBtnActive: { backgroundColor: 'rgba(196, 139, 53, 0.15)' },
+    drawWidthPreview: { backgroundColor: c.textPrimary },
+
+    // Toolbar
+    toolbar: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      paddingTop: 10,
+      paddingHorizontal: spacing.md,
+      backgroundColor: c.cardBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    toolBtn: {
+      alignItems: 'center',
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+    },
+    toolBtnActive: { backgroundColor: 'rgba(196, 139, 53, 0.1)' },
+    toolLabel: { ...typography.caption, color: c.textSecondary, marginTop: 2, fontSize: 10 },
+    toolLabelActive: { color: c.accent, fontWeight: '600' },
+
+    // Sticker sheet
+    categoryScroll: { marginBottom: 8 },
+    categoryChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      backgroundColor: 'rgba(160, 149, 133, 0.08)',
+      marginRight: 6,
+      gap: 4,
+    },
+    categoryChipActive: { backgroundColor: 'rgba(196, 139, 53, 0.15)' },
+    categoryEmoji: { fontSize: 16 },
+    categoryLabel: { ...typography.caption, color: c.textSecondary, fontSize: 12 },
+    categoryLabelActive: { color: c.accent, fontWeight: '600' },
+    stickerGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 4,
+      paddingBottom: 20,
+    },
+    stickerOption: {
+      width: 48,
+      height: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 12,
+    },
+    stickerOptionText: { fontSize: 28 },
+
+    // Background sheet
+    bgGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      paddingBottom: 20,
+    },
+    bgOption: {
+      width: 52,
+      height: 52,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    bgOptionSelected: { borderWidth: 3, borderColor: c.accent },
+
+    // Text input
+    textInputContainer: { flex: 1, paddingTop: spacing.sm },
+    textInputField: {
+      ...typography.body,
+      color: c.textPrimary,
+      borderBottomWidth: 1.5,
+      borderBottomColor: c.divider,
+      paddingVertical: spacing.sm,
+      minHeight: 50,
+      textAlignVertical: 'top',
+    },
+    textFontRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+    fontChip: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      backgroundColor: 'rgba(160, 149, 133, 0.08)',
+    },
+    fontChipText: { ...typography.caption, color: c.textSecondary },
+    textAddBtn: {
+      backgroundColor: c.accent,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: spacing.md,
+    },
+    textAddBtnDisabled: { opacity: 0.4 },
+    textAddBtnText: { ...typography.body, color: c.warmWhite, fontWeight: '600' },
+
+    // Layer sheet
+    layerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      marginBottom: 4,
+    },
+    layerRowActive: { backgroundColor: 'rgba(196, 139, 53, 0.1)' },
+    layerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 8,
+      backgroundColor: 'rgba(160, 149, 133, 0.08)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    layerInfo: { flex: 1, marginLeft: 10 },
+    layerName: { ...typography.body, color: c.textPrimary, fontSize: 14 },
+    layerMeta: { ...typography.caption, color: c.textMuted, fontSize: 10 },
+    layerEmpty: { ...typography.body, color: c.textMuted, textAlign: 'center', paddingTop: 40 },
+  }));
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -484,6 +742,7 @@ export function AlbumEditorScreen() {
                 updateElement(album.id, page.id, el.id, { width: newW, height: newH });
               }}
               disabled={toolMode === 'draw' || toolMode === 'eraser'}
+              styles={styles}
             />
           ))}
 
@@ -721,6 +980,7 @@ function DraggableElement({
   onDragEnd,
   onResizeEnd,
   disabled,
+  styles,
 }: {
   element: PageElement;
   canvasWidth: number;
@@ -730,7 +990,9 @@ function DraggableElement({
   onDragEnd: (newX: number, newY: number) => void;
   onResizeEnd: (newW: number, newH: number) => void;
   disabled?: boolean;
+  styles: any;
 }) {
+  const colors = useColors();
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const startX = useRef(0);
@@ -878,259 +1140,3 @@ function DraggableElement({
 
 const startX = { current: 0 };
 const startY = { current: 0 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  notFound: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginTop: 100 },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingBottom: 4,
-  },
-  headerTitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    flex: 1,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  headerActions: { flexDirection: 'row', gap: 2 },
-
-  // Element actions
-  elementActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 4,
-    gap: 6,
-  },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: colors.cardBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.divider,
-  },
-  actionChipText: { ...typography.caption, color: colors.textSecondary, fontSize: 11 },
-
-  // Canvas
-  canvasContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
-  },
-  canvas: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  element: {
-    position: 'absolute',
-    overflow: 'hidden',
-  },
-  elementSelected: {
-    borderWidth: 2,
-    borderColor: colors.accent,
-    borderStyle: 'dashed',
-    borderRadius: 4,
-  },
-  photoWrapper: { width: '100%', height: '100%', borderRadius: 4, overflow: 'hidden' },
-  photoElement: { width: '100%', height: '100%' },
-  blurredPhoto: { opacity: 0.3 },
-  blurOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(240, 232, 219, 0.7)',
-    borderRadius: 4,
-  },
-  stickerElement: { textAlign: 'center' },
-  textElement: { padding: 4 },
-  drawDot: { position: 'absolute' },
-  resizeHandle: {
-    position: 'absolute',
-    bottom: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  emptyCanvas: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyCanvasText: { ...typography.body, color: colors.textMuted, textAlign: 'center', lineHeight: 24 },
-
-  // Drawing toolbar
-  drawToolbar: {
-    paddingVertical: 8,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.cardBg,
-    marginHorizontal: spacing.md,
-    borderRadius: 16,
-    marginBottom: 4,
-  },
-  drawToolRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  drawColorDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  drawColorDotActive: {
-    borderWidth: 3,
-    borderColor: colors.accent,
-  },
-  drawDivider: { width: 1, height: 24, backgroundColor: colors.divider, marginHorizontal: 4 },
-  drawWidthBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  drawWidthBtnActive: { backgroundColor: 'rgba(196, 139, 53, 0.15)' },
-  drawWidthPreview: { backgroundColor: colors.textPrimary },
-
-  // Toolbar
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 10,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.cardBg,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  toolBtn: {
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  toolBtnActive: { backgroundColor: 'rgba(196, 139, 53, 0.1)' },
-  toolLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 2, fontSize: 10 },
-  toolLabelActive: { color: colors.accent, fontWeight: '600' },
-
-  // Sticker sheet
-  categoryScroll: { marginBottom: 8 },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: 'rgba(160, 149, 133, 0.08)',
-    marginRight: 6,
-    gap: 4,
-  },
-  categoryChipActive: { backgroundColor: 'rgba(196, 139, 53, 0.15)' },
-  categoryEmoji: { fontSize: 16 },
-  categoryLabel: { ...typography.caption, color: colors.textSecondary, fontSize: 12 },
-  categoryLabelActive: { color: colors.accent, fontWeight: '600' },
-  stickerGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    paddingBottom: 20,
-  },
-  stickerOption: {
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
-  stickerOptionText: { fontSize: 28 },
-
-  // Background sheet
-  bgGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingBottom: 20,
-  },
-  bgOption: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  bgOptionSelected: { borderWidth: 3, borderColor: colors.accent },
-
-  // Text input
-  textInputContainer: { flex: 1, paddingTop: spacing.sm },
-  textInputField: {
-    ...typography.body,
-    color: colors.textPrimary,
-    borderBottomWidth: 1.5,
-    borderBottomColor: colors.divider,
-    paddingVertical: spacing.sm,
-    minHeight: 50,
-    textAlignVertical: 'top',
-  },
-  textFontRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
-  fontChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    backgroundColor: 'rgba(160, 149, 133, 0.08)',
-  },
-  fontChipText: { ...typography.caption, color: colors.textSecondary },
-  textAddBtn: {
-    backgroundColor: colors.accent,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  textAddBtnDisabled: { opacity: 0.4 },
-  textAddBtnText: { ...typography.body, color: colors.warmWhite, fontWeight: '600' },
-
-  // Layer sheet
-  layerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    marginBottom: 4,
-  },
-  layerRowActive: { backgroundColor: 'rgba(196, 139, 53, 0.1)' },
-  layerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: 'rgba(160, 149, 133, 0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  layerInfo: { flex: 1, marginLeft: 10 },
-  layerName: { ...typography.body, color: colors.textPrimary, fontSize: 14 },
-  layerMeta: { ...typography.caption, color: colors.textMuted, fontSize: 10 },
-  layerEmpty: { ...typography.body, color: colors.textMuted, textAlign: 'center', paddingTop: 40 },
-});

@@ -40,3 +40,15 @@ export function useThemeStore() {
   if (!context) throw new Error('useThemeStore must be used within ThemeStoreProvider');
   return context;
 }
+
+/** 현재 테마 컬러 반환 (다크/라이트 자동 전환) */
+export function useColors(): ThemeColors {
+  const { colors } = useThemeStore();
+  return colors;
+}
+
+/** 현재 다크모드 여부 */
+export function useIsDark(): boolean {
+  const { isDark } = useThemeStore();
+  return isDark;
+}

@@ -20,7 +20,8 @@ import {
   CopySimple,
   ArrowsDownUp,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { WarmBackground, GlassCard, IconButton } from '../components/common';
@@ -29,10 +30,93 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'PageManager'>;
 
 export function PageManagerScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { getAlbum, addPage, deletePage } = useAlbumStore();
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitle: { ...typography.subtitle, color: c.textPrimary, fontSize: 20 },
+    headerSubtitle: { ...typography.caption, color: c.textSecondary, marginTop: 2 },
+
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+
+    pageCard: { marginBottom: 4 },
+    pageRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+    },
+    pagePreview: {
+      width: 56,
+      height: 72,
+      borderRadius: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    pagePreviewNum: {
+      ...typography.subtitle,
+      color: c.textMuted,
+      fontSize: 18,
+      opacity: 0.4,
+    },
+    elementCount: {
+      ...typography.caption,
+      color: c.textMuted,
+      fontSize: 9,
+      marginTop: 2,
+    },
+    pageInfo: { flex: 1, marginLeft: 14 },
+    pageName: { ...typography.body, color: c.textPrimary, fontWeight: '500' },
+    pageDetail: { ...typography.caption, color: c.textMuted, marginTop: 2 },
+    pageActions: { flexDirection: 'row', gap: 8 },
+    actionSmallBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: 'rgba(160, 149, 133, 0.06)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+
+    // Insert button
+    insertBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 4,
+      paddingHorizontal: 12,
+    },
+    insertLine: {
+      flex: 1,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: c.divider,
+    },
+    insertCircle: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1.5,
+      borderColor: 'rgba(196, 139, 53, 0.3)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginHorizontal: 8,
+    },
+  }));
 
   const album = getAlbum(route.params.albumId);
   const pages = useMemo(() => album?.pages || [], [album]);
@@ -165,84 +249,3 @@ export function PageManagerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { ...typography.subtitle, color: colors.textPrimary, fontSize: 20 },
-  headerSubtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-
-  pageCard: { marginBottom: 4 },
-  pageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  pagePreview: {
-    width: 56,
-    height: 72,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  pagePreviewNum: {
-    ...typography.subtitle,
-    color: colors.textMuted,
-    fontSize: 18,
-    opacity: 0.4,
-  },
-  elementCount: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 9,
-    marginTop: 2,
-  },
-  pageInfo: { flex: 1, marginLeft: 14 },
-  pageName: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  pageDetail: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  pageActions: { flexDirection: 'row', gap: 8 },
-  actionSmallBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: 'rgba(160, 149, 133, 0.06)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Insert button
-  insertBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  insertLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.divider,
-  },
-  insertCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(196, 139, 53, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-});

@@ -1,230 +1,440 @@
 /**
- * Firebase 서비스 레이어
+ * Firebase 서비스 레이어 (JS SDK — Expo Go 호환)
  *
- * Firebase 모듈이 Expo 빌드 환경에서만 동작하므로,
- * 개발 중에는 mock으로 대체하고 실제 빌드 시 Firebase 연결.
- *
- * TODO: EAS Build 환경에서 아래 주석을 해제하여 실제 Firebase 연결
+ * Firebase JS SDK를 사용하여 Expo Go에서도 동작합니다.
+ * FCM(푸시 알림)과 Crashlytics만 프로덕션 빌드에서 동작합니다.
  */
 
-// import auth from '@react-native-firebase/auth';
-// import firestore from '@react-native-firebase/firestore';
-// import storage from '@react-native-firebase/storage';
-// import messaging from '@react-native-firebase/messaging';
-// import analytics from '@react-native-firebase/analytics';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import {
+  initializeAuth,
+  getAuth,
+  signInWithCredential,
+  signOut as fbSignOut,
+  onAuthStateChanged as fbOnAuthStateChanged,
+  updateProfile as fbUpdateProfile,
+  createUserWithEmailAndPassword as fbCreateUserWithEmail,
+  signInWithEmailAndPassword as fbSignInWithEmail,
+  sendEmailVerification as fbSendEmailVerification,
+  signInWithPhoneNumber as fbSignInWithPhoneNumber,
+  PhoneAuthProvider,
+  OAuthProvider,
+  GoogleAuthProvider,
+  type ApplicationVerifier,
+  type User as FBUser,
+  type UserCredential,
+} from 'firebase/auth';
+// @ts-ignore — RN persistence (not in public exports yet)
+import { getReactNativePersistence } from '@firebase/auth/dist/rn/index.js';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  limit,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+  writeBatch,
+  Timestamp,
+} from 'firebase/firestore';
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL as fbGetDownloadURL,
+  deleteObject,
+} from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+/* ─────────────── Firebase 초기화 ─────────────── */
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyCl4Y1qkOa1M6ZaDv1QCmTsrxJqWy2MysA',
+  authDomain: 'hearth-341617.firebaseapp.com',
+  projectId: 'hearth-341617',
+  storageBucket: 'hearth-341617.firebasestorage.app',
+  messagingSenderId: '125887430824',
+  appId: '1:125887430824:ios:5a5f60b241ca90f288429d',
+};
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Auth — AsyncStorage로 세션 영속화 (hot reload 대응)
+let auth: ReturnType<typeof initializeAuth>;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch {
+  auth = getAuth(app) as any;
+}
+
+// 개발 모드: reCAPTCHA 검증 비활성화 (테스트 전화번호 사용 가능)
+if (__DEV__) {
+  auth.settings.appVerificationDisabledForTesting = true;
+}
+
+const db = getFirestore(app);
+const storageInstance = getStorage(app);
 
 /* ─────────────── Auth Service ─────────────── */
 
 export const AuthService = {
-  /** Apple 소셜 로그인 */
-  signInWithApple: async (): Promise<{ uid: string; displayName: string; email?: string }> => {
-    // TODO: auth().signInWithCredential(appleCredential)
-    return { uid: 'mock-apple-uid', displayName: '사용자', email: 'user@apple.com' };
+  /** credential 로그인 (Apple/Google) */
+  signInWithCredential: async (credential: any): Promise<UserCredential> => {
+    return signInWithCredential(auth, credential);
   },
 
-  /** Google 소셜 로그인 */
-  signInWithGoogle: async (): Promise<{ uid: string; displayName: string; email?: string }> => {
-    // TODO: auth().signInWithCredential(googleCredential)
-    return { uid: 'mock-google-uid', displayName: '사용자', email: 'user@gmail.com' };
+  /** Apple credential 생성 */
+  createAppleCredential: (identityToken: string, nonce: string) => {
+    const provider = new OAuthProvider('apple.com');
+    return provider.credential({ idToken: identityToken, rawNonce: nonce });
   },
 
-  /** 익명 로그인 */
-  signInAnonymously: async (): Promise<{ uid: string }> => {
-    // TODO: auth().signInAnonymously()
-    return { uid: 'mock-anon-uid' };
+  /** Google credential 생성 */
+  createGoogleCredential: (idToken: string) => {
+    return GoogleAuthProvider.credential(idToken);
   },
 
   /** 로그아웃 */
   signOut: async (): Promise<void> => {
-    // TODO: auth().signOut()
+    await fbSignOut(auth);
   },
 
   /** 현재 사용자 */
-  getCurrentUser: () => {
-    // TODO: auth().currentUser
-    return null;
+  getCurrentUser: (): FBUser | null => {
+    return auth.currentUser;
   },
 
   /** 인증 상태 변경 리스너 */
-  onAuthStateChanged: (callback: (user: any) => void) => {
-    // TODO: auth().onAuthStateChanged(callback)
-    return () => {}; // unsubscribe
+  onAuthStateChanged: (callback: (user: FBUser | null) => void): (() => void) => {
+    return fbOnAuthStateChanged(auth, callback);
+  },
+
+  /** 프로필 업데이트 */
+  updateProfile: async (updates: { displayName?: string; photoURL?: string }): Promise<void> => {
+    const user = auth.currentUser;
+    if (user) {
+      await fbUpdateProfile(user, {
+        displayName: updates.displayName ?? user.displayName,
+        photoURL: updates.photoURL ?? user.photoURL,
+      });
+    }
+  },
+
+  /** 이메일 회원가입 */
+  signUpWithEmail: async (email: string, password: string): Promise<UserCredential> => {
+    return fbCreateUserWithEmail(auth, email, password);
+  },
+
+  /** 이메일 로그인 */
+  signInWithEmail: async (email: string, password: string): Promise<UserCredential> => {
+    return fbSignInWithEmail(auth, email, password);
+  },
+
+  /** 이메일 인증 메일 발송 */
+  sendEmailVerification: async (): Promise<void> => {
+    if (auth.currentUser) await fbSendEmailVerification(auth.currentUser);
+  },
+
+  /** 전화번호 인증번호 발송 (개발: fake verifier, 프로덕션: native SDK) */
+  sendPhoneVerification: async (phoneNumber: string): Promise<string> => {
+    // appVerificationDisabledForTesting이 true이면 fake verifier 허용됨
+    const fakeVerifier = {
+      type: 'recaptcha' as const,
+      verify: () => Promise.resolve('fake-recaptcha-token'),
+      _reset: () => {},
+    } as ApplicationVerifier;
+    const confirmationResult = await fbSignInWithPhoneNumber(auth, phoneNumber, fakeVerifier);
+    return confirmationResult.verificationId;
+  },
+
+  /** 전화번호 인증 credential 생성 */
+  createPhoneCredential: (verificationId: string, code: string) => {
+    return PhoneAuthProvider.credential(verificationId, code);
+  },
+
+  /** 계정 삭제 */
+  deleteAccount: async (): Promise<void> => {
+    const user = auth.currentUser;
+    if (user) await user.delete();
   },
 };
 
 /* ─────────────── Firestore Service ─────────────── */
 
+/** Firestore timestamp → JS Date 변환 헬퍼 */
+const toDate = (ts: any): Date => {
+  if (ts instanceof Timestamp) return ts.toDate();
+  if (ts && typeof ts.toDate === 'function') return ts.toDate();
+  if (ts instanceof Date) return ts;
+  return new Date(ts);
+};
+
 export const FirestoreService = {
-  /** 앨범 생성 */
-  createAlbum: async (albumData: any): Promise<string> => {
-    // TODO: firestore().collection('albums').add(albumData)
-    return `album-${Date.now()}`;
+  /* ── User Profile ── */
+
+  setUserProfile: async (uid: string, data: Record<string, any>): Promise<void> => {
+    // Firestore는 undefined 값을 허용하지 않으므로 제거
+    const cleaned = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+    await setDoc(doc(db, 'users', uid), cleaned, { merge: true });
   },
 
-  /** 앨범 업데이트 */
-  updateAlbum: async (albumId: string, updates: any): Promise<void> => {
-    // TODO: firestore().collection('albums').doc(albumId).update(updates)
+  getUserProfile: async (uid: string): Promise<Record<string, any> | null> => {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? (snap.data() ?? null) : null;
   },
 
-  /** 앨범 삭제 */
+  subscribeToUserProfile: (uid: string, callback: (data: Record<string, any> | null) => void) => {
+    return onSnapshot(doc(db, 'users', uid), (snap) => {
+      callback(snap.exists() ? (snap.data() ?? null) : null);
+    });
+  },
+
+  /* ── Albums ── */
+
+  createAlbum: async (albumData: Record<string, any>): Promise<string> => {
+    const ref = await addDoc(collection(db, 'albums'), {
+      ...albumData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return ref.id;
+  },
+
+  updateAlbum: async (albumId: string, updates: Record<string, any>): Promise<void> => {
+    await updateDoc(doc(db, 'albums', albumId), {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    });
+  },
+
   deleteAlbum: async (albumId: string): Promise<void> => {
-    // TODO: firestore().collection('albums').doc(albumId).delete()
+    await updateDoc(doc(db, 'albums', albumId), {
+      deletedAt: serverTimestamp(),
+    });
   },
 
-  /** 앨범 실시간 구독 */
+  permanentlyDeleteAlbum: async (albumId: string): Promise<void> => {
+    await deleteDoc(doc(db, 'albums', albumId));
+  },
+
   subscribeToAlbum: (albumId: string, callback: (data: any) => void) => {
-    // TODO: firestore().collection('albums').doc(albumId).onSnapshot(callback)
-    return () => {}; // unsubscribe
+    return onSnapshot(doc(db, 'albums', albumId), (snap) => {
+      if (snap.exists()) callback({ id: snap.id, ...snap.data() });
+    });
   },
 
-  /** 사용자의 모든 앨범 구독 */
   subscribeToUserAlbums: (userId: string, callback: (albums: any[]) => void) => {
-    // TODO: firestore().collection('albums').where('memberIds', 'array-contains', userId).onSnapshot(...)
-    return () => {};
+    const q = query(
+      collection(db, 'albums'),
+      where('memberIds', 'array-contains', userId),
+      where('deletedAt', '==', null),
+      orderBy('updatedAt', 'desc'),
+    );
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
   },
 
-  /** 페이지 요소 업데이트 (공동 편집) */
+  subscribeToDeletedAlbums: (userId: string, callback: (albums: any[]) => void) => {
+    const q = query(
+      collection(db, 'albums'),
+      where('memberIds', 'array-contains', userId),
+      where('deletedAt', '!=', null),
+      orderBy('deletedAt', 'desc'),
+    );
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+  },
+
+  /* ── Pages (subcollection) ── */
+
   updatePageElements: async (albumId: string, pageId: string, elements: any[]): Promise<void> => {
-    // TODO: firestore().collection('albums').doc(albumId).collection('pages').doc(pageId).update({ elements })
+    await updateDoc(doc(db, 'albums', albumId, 'pages', pageId), {
+      elements,
+      updatedAt: serverTimestamp(),
+    });
   },
 
-  /** 페이지 실시간 구독 (공동 편집용) */
   subscribeToPage: (albumId: string, pageId: string, callback: (data: any) => void) => {
-    // TODO: firestore().collection('albums').doc(albumId).collection('pages').doc(pageId).onSnapshot(callback)
-    return () => {};
+    return onSnapshot(doc(db, 'albums', albumId, 'pages', pageId), (snap) => {
+      if (snap.exists()) callback({ id: snap.id, ...snap.data() });
+    });
   },
 
-  /** 공동 편집자 추가 */
+  /* ── Collaborators ── */
+
   addCollaborator: async (albumId: string, userId: string): Promise<void> => {
-    // TODO: firestore().collection('albums').doc(albumId).update({ memberIds: firestore.FieldValue.arrayUnion(userId) })
+    await updateDoc(doc(db, 'albums', albumId), {
+      memberIds: arrayUnion(userId),
+      updatedAt: serverTimestamp(),
+    });
   },
 
-  /** 친구 목록 구독 */
+  removeCollaborator: async (albumId: string, userId: string): Promise<void> => {
+    await updateDoc(doc(db, 'albums', albumId), {
+      memberIds: arrayRemove(userId),
+      updatedAt: serverTimestamp(),
+    });
+  },
+
+  /* ── Friends ── */
+
+  addFriend: async (userId: string, friendData: Record<string, any>): Promise<string> => {
+    const ref = await addDoc(collection(db, 'users', userId, 'friends'), {
+      ...friendData,
+      createdAt: serverTimestamp(),
+    });
+    return ref.id;
+  },
+
+  updateFriend: async (userId: string, friendId: string, updates: Record<string, any>): Promise<void> => {
+    await updateDoc(doc(db, 'users', userId, 'friends', friendId), updates);
+  },
+
+  deleteFriend: async (userId: string, friendId: string): Promise<void> => {
+    await deleteDoc(doc(db, 'users', userId, 'friends', friendId));
+  },
+
   subscribeToFriends: (userId: string, callback: (friends: any[]) => void) => {
-    // TODO: firestore().collection('users').doc(userId).collection('friends').onSnapshot(...)
-    return () => {};
+    const q = query(collection(db, 'users', userId, 'friends'), orderBy('name'));
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
   },
 
-  /** 알림 목록 구독 */
+  /* ── Notifications ── */
+
   subscribeToNotifications: (userId: string, callback: (notifications: any[]) => void) => {
-    // TODO: firestore().collection('users').doc(userId).collection('notifications').orderBy('time', 'desc').limit(50).onSnapshot(...)
-    return () => {};
+    const q = query(
+      collection(db, 'users', userId, 'notifications'),
+      orderBy('time', 'desc'),
+      limit(50),
+    );
+    return onSnapshot(q, (snap) => {
+      callback(snap.docs.map(d => ({
+        id: d.id,
+        ...d.data(),
+        time: toDate(d.data().time),
+      })));
+    });
   },
 
-  /** 알림 읽음 처리 */
   markNotificationRead: async (userId: string, notifId: string): Promise<void> => {
-    // TODO: firestore().collection('users').doc(userId).collection('notifications').doc(notifId).update({ read: true })
+    await updateDoc(doc(db, 'users', userId, 'notifications', notifId), { read: true });
   },
+
+  markAllNotificationsRead: async (userId: string): Promise<void> => {
+    const q = query(
+      collection(db, 'users', userId, 'notifications'),
+      where('read', '==', false),
+    );
+    const batch = writeBatch(db);
+    const unreadSnap = await getDocs(q);
+    unreadSnap.docs.forEach(d => batch.update(d.ref, { read: true }));
+    await batch.commit();
+  },
+
+  deleteNotification: async (userId: string, notifId: string): Promise<void> => {
+    await deleteDoc(doc(db, 'users', userId, 'notifications', notifId));
+  },
+
+  serverTimestamp,
+  toDate,
 };
 
 /* ─────────────── Storage Service ─────────────── */
 
 export const StorageService = {
-  /** 이미지 업로드 */
+  /** 이미지 업로드 (blob 방식 — Expo Go 호환) */
   uploadImage: async (
     path: string,
     localUri: string,
     onProgress?: (progress: number) => void
   ): Promise<string> => {
-    // TODO:
-    // const ref = storage().ref(path);
-    // const task = ref.putFile(localUri);
-    // task.on('state_changed', snapshot => {
-    //   onProgress?.(snapshot.bytesTransferred / snapshot.totalBytes);
-    // });
-    // await task;
-    // return ref.getDownloadURL();
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+    const storageRef = ref(storageInstance, path);
+    const uploadTask = uploadBytesResumable(storageRef, blob);
 
-    // Mock: return local URI as-is
-    return localUri;
+    return new Promise((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          onProgress?.(snapshot.bytesTransferred / snapshot.totalBytes);
+        },
+        reject,
+        async () => {
+          const url = await fbGetDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        }
+      );
+    });
   },
 
-  /** 이미지 삭제 */
   deleteImage: async (path: string): Promise<void> => {
-    // TODO: storage().ref(path).delete()
+    await deleteObject(ref(storageInstance, path));
   },
 
-  /** 이미지 URL 가져오기 */
   getDownloadURL: async (path: string): Promise<string> => {
-    // TODO: storage().ref(path).getDownloadURL()
-    return '';
+    return fbGetDownloadURL(ref(storageInstance, path));
   },
 
-  /** 썸네일 자동 생성 (Cloud Function 트리거) */
-  generateThumbnail: async (imagePath: string): Promise<string> => {
-    // Firebase Cloud Function이 자동으로 처리
-    // 원본 경로에서 /thumbnails/ 경로로 리사이즈
-    return imagePath.replace('/photos/', '/thumbnails/');
+  uploadProfilePhoto: async (uid: string, localUri: string, onProgress?: (progress: number) => void): Promise<string> => {
+    return StorageService.uploadImage(`users/${uid}/profile.jpg`, localUri, onProgress);
+  },
+
+  uploadCoverPhoto: async (uid: string, localUri: string, onProgress?: (progress: number) => void): Promise<string> => {
+    return StorageService.uploadImage(`users/${uid}/cover.jpg`, localUri, onProgress);
+  },
+
+  uploadAlbumPhoto: async (albumId: string, fileName: string, localUri: string, onProgress?: (progress: number) => void): Promise<string> => {
+    return StorageService.uploadImage(`albums/${albumId}/photos/${fileName}`, localUri, onProgress);
   },
 };
 
-/* ─────────────── FCM Service ─────────────── */
+/* ─────────────── FCM Service (프로덕션 빌드 전용) ─────────────── */
+
+// FCM은 네이티브 모듈이므로 Expo Go에서는 no-op
+// 프로덕션 빌드 시 @react-native-firebase/messaging 사용
 
 export const FCMService = {
-  /** FCM 토큰 가져오기 */
-  getToken: async (): Promise<string> => {
-    // TODO: messaging().getToken()
-    return 'mock-fcm-token';
-  },
-
-  /** 알림 권한 요청 */
-  requestPermission: async (): Promise<boolean> => {
-    // TODO: messaging().requestPermission()
-    return true;
-  },
-
-  /** 포그라운드 알림 리스너 */
-  onMessage: (callback: (message: any) => void) => {
-    // TODO: messaging().onMessage(callback)
-    return () => {};
-  },
-
-  /** 백그라운드 알림 핸들러 */
-  setBackgroundMessageHandler: (handler: (message: any) => Promise<void>) => {
-    // TODO: messaging().setBackgroundMessageHandler(handler)
-  },
-
-  /** 알림 탭 리스너 */
-  onNotificationOpenedApp: (callback: (message: any) => void) => {
-    // TODO: messaging().onNotificationOpenedApp(callback)
-    return () => {};
-  },
-
-  /** 토픽 구독 (앨범 업데이트 등) */
-  subscribeToTopic: async (topic: string): Promise<void> => {
-    // TODO: messaging().subscribeToTopic(topic)
-  },
-
-  /** 토픽 구독 해제 */
-  unsubscribeFromTopic: async (topic: string): Promise<void> => {
-    // TODO: messaging().unsubscribeFromTopic(topic)
-  },
+  getToken: async (): Promise<string> => 'expo-go-no-fcm',
+  requestPermission: async (): Promise<boolean> => true,
+  onMessage: (_callback: (message: any) => void): (() => void) => () => {},
+  setBackgroundMessageHandler: (_handler: (message: any) => Promise<void>) => {},
+  onNotificationOpenedApp: (_callback: (message: any) => void): (() => void) => () => {},
+  getInitialNotification: async () => null,
+  subscribeToTopic: async (_topic: string): Promise<void> => {},
+  unsubscribeFromTopic: async (_topic: string): Promise<void> => {},
+  saveTokenToFirestore: async (_uid: string): Promise<void> => {},
 };
 
 /* ─────────────── Analytics Service ─────────────── */
 
+// JS SDK analytics (getAnalytics) — Expo Go에서는 console.log로 대체
 export const AnalyticsService = {
-  /** 화면 조회 */
   logScreenView: async (screenName: string): Promise<void> => {
-    // TODO: analytics().logScreenView({ screen_name: screenName })
+    if (__DEV__) console.log('[Analytics] screen:', screenName);
   },
-
-  /** 커스텀 이벤트 */
   logEvent: async (name: string, params?: Record<string, any>): Promise<void> => {
-    // TODO: analytics().logEvent(name, params)
+    if (__DEV__) console.log('[Analytics] event:', name, params);
   },
+  setUserProperty: async (_name: string, _value: string): Promise<void> => {},
+  setUserId: async (_userId: string): Promise<void> => {},
 
-  /** 사용자 속성 설정 */
-  setUserProperty: async (name: string, value: string): Promise<void> => {
-    // TODO: analytics().setUserProperty(name, value)
-  },
-
-  /** 사용자 ID 설정 */
-  setUserId: async (userId: string): Promise<void> => {
-    // TODO: analytics().setUserId(userId)
-  },
-
-  // 핵심 이벤트 (docs: 15+ core events)
   Events: {
     ALBUM_CREATED: 'album_created',
     ALBUM_SHARED: 'album_shared',
@@ -243,3 +453,18 @@ export const AnalyticsService = {
     THEME_CHANGED: 'theme_changed',
   },
 };
+
+/* ─────────────── Crashlytics Service (프로덕션 빌드 전용) ─────────────── */
+
+export const CrashlyticsService = {
+  setUserId: async (_uid: string): Promise<void> => {},
+  log: (_message: string): void => {},
+  recordError: (_error: Error, _context?: string): void => {
+    if (__DEV__) console.error('[Crashlytics]', _error);
+  },
+  setAttribute: async (_key: string, _value: string): Promise<void> => {},
+};
+
+/* ─────────────── Exports ─────────────── */
+
+export { firebaseConfig };

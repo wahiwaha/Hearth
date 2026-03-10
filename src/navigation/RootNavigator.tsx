@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { useColors } from '../store/ThemeStore';
 import { PageSwipeNavigator } from './PageSwipeNavigator';
 import { CreateAlbumScreen } from '../screens/CreateAlbumScreen';
 import { AlbumViewerScreen } from '../screens/AlbumViewerScreen';
@@ -19,17 +20,19 @@ import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { TemplateGalleryScreen } from '../screens/TemplateGalleryScreen';
 import { ThemeSettingsScreen } from '../screens/ThemeSettingsScreen';
+import { LanguageSettingsScreen } from '../screens/LanguageSettingsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  const colors = useColors();
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
-          contentStyle: { backgroundColor: '#F7F2EA' },
+          contentStyle: { backgroundColor: colors.background },
         }}
       >
         {/* Main tabs */}
@@ -114,6 +117,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="ThemeSettings"
           component={ThemeSettingsScreen}
+          options={{ animation: 'slide_from_bottom' }}
+        />
+        <Stack.Screen
+          name="LanguageSettings"
+          component={LanguageSettingsScreen}
           options={{ animation: 'slide_from_bottom' }}
         />
       </Stack.Navigator>

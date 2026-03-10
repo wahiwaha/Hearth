@@ -20,7 +20,8 @@ import {
   Link,
   ChatCircle,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useFriendStore } from '../store/FriendStore';
 import { useAlbumStore } from '../store/AlbumStore';
@@ -30,6 +31,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'InviteCollaborator'>;
 
 export function InviteCollaboratorScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -39,6 +41,114 @@ export function InviteCollaboratorScreen() {
   const album = getAlbum(route.params.albumId);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: { ...typography.subtitle, color: c.textPrimary },
+
+    // Search
+    searchContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: c.cardBg,
+      borderRadius: 12,
+      gap: 10,
+    },
+    searchInput: {
+      ...typography.body,
+      color: c.textPrimary,
+      flex: 1,
+    },
+
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg },
+
+    // External invite
+    section: { marginBottom: spacing.md },
+    externalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+    externalIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    externalText: { flex: 1, marginLeft: 14 },
+    externalLabel: { ...typography.body, color: c.textPrimary, fontWeight: '500' },
+    externalDesc: { ...typography.caption, color: c.textMuted, marginTop: 1 },
+    divider: { height: StyleSheet.hairlineWidth, backgroundColor: c.divider, marginVertical: 4 },
+
+    // Friend list
+    friendListTitle: {
+      ...typography.label,
+      color: c.textSecondary,
+      marginBottom: spacing.sm,
+      marginTop: spacing.sm,
+    },
+    friendRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.divider,
+    },
+    friendInfo: { flex: 1, marginLeft: 12 },
+    friendName: { ...typography.body, color: c.textPrimary, fontWeight: '500' },
+    friendSub: { ...typography.caption, color: c.textMuted, marginTop: 1 },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: c.textMuted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkboxActive: {
+      backgroundColor: c.accent,
+      borderColor: c.accent,
+    },
+    emptyText: {
+      ...typography.body,
+      color: c.textMuted,
+      textAlign: 'center',
+      paddingVertical: 24,
+    },
+
+    // Bottom bar
+    bottomBar: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: 12,
+      backgroundColor: c.cardBg,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+    },
+    inviteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: c.accent,
+      paddingVertical: 16,
+      borderRadius: 14,
+    },
+    inviteButtonText: { ...typography.body, color: c.warmWhite, fontWeight: '600' },
+  }));
 
   const filteredFriends = useMemo(() => {
     const existingIds = new Set(album?.collaborators?.map(c => c.id) || []);
@@ -199,110 +309,3 @@ export function InviteCollaboratorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: { ...typography.subtitle, color: colors.textPrimary },
-
-  // Search
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: colors.cardBg,
-    borderRadius: 12,
-    gap: 10,
-  },
-  searchInput: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg },
-
-  // External invite
-  section: { marginBottom: spacing.md },
-  externalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  externalIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  externalText: { flex: 1, marginLeft: 14 },
-  externalLabel: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  externalDesc: { ...typography.caption, color: colors.textMuted, marginTop: 1 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.divider, marginVertical: 4 },
-
-  // Friend list
-  friendListTitle: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  friendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-  },
-  friendInfo: { flex: 1, marginLeft: 12 },
-  friendName: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  friendSub: { ...typography.caption, color: colors.textMuted, marginTop: 1 },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.textMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingVertical: 24,
-  },
-
-  // Bottom bar
-  bottomBar: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 12,
-    backgroundColor: colors.cardBg,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-  },
-  inviteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.accent,
-    paddingVertical: 16,
-    borderRadius: 14,
-  },
-  inviteButtonText: { ...typography.body, color: colors.warmWhite, fontWeight: '600' },
-});

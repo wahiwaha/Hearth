@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Image,
   TextInput,
   ScrollView,
@@ -22,7 +21,8 @@ import {
   Check,
   Tag,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { WarmBackground, GlassCard, IconButton, Avatar } from '../components/common';
 import { useFriendStore } from '../store/FriendStore';
@@ -33,6 +33,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'PhotoDetail'>;
 
 export function PhotoDetailScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -44,6 +45,132 @@ export function PhotoDetailScreen() {
   const [locationName, setLocationName] = useState('');
   const [isEditingMemo, setIsEditingMemo] = useState(false);
   const [showFriendPicker, setShowFriendPicker] = useState(false);
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      color: c.textPrimary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg },
+
+    // Photo
+    photoContainer: {
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+    },
+    photo: {
+      width: SCREEN_WIDTH - spacing.lg * 2,
+      height: (SCREEN_WIDTH - spacing.lg * 2) * 0.75,
+      borderRadius: 12,
+      backgroundColor: c.backgroundDark,
+    },
+    photoPlaceholder: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    placeholderText: {
+      ...typography.body,
+      color: c.textMuted,
+    },
+
+    // Sections
+    section: { marginBottom: spacing.md },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: spacing.sm,
+    },
+    sectionLabel: {
+      ...typography.label,
+      color: c.textSecondary,
+    },
+
+    // Memo
+    memoInput: {
+      ...typography.body,
+      color: c.textPrimary,
+      minHeight: 80,
+      textAlignVertical: 'top',
+      borderWidth: 1,
+      borderColor: c.divider,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: spacing.sm,
+    },
+    memoScopeRow: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    scopeBtn: {
+      flex: 1,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: 'rgba(160, 149, 133, 0.08)',
+      alignItems: 'center',
+    },
+    scopeBtnActive: {
+      backgroundColor: 'rgba(196, 139, 53, 0.15)',
+    },
+    scopeBtnText: {
+      ...typography.caption,
+      color: c.textMuted,
+      fontWeight: '500',
+    },
+    scopeBtnTextActive: {
+      color: c.accent,
+      fontWeight: '600',
+    },
+
+    // Friend tags
+    friendTagGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    friendTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 20,
+      backgroundColor: 'rgba(160, 149, 133, 0.08)',
+    },
+    friendTagActive: {
+      backgroundColor: 'rgba(196, 139, 53, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(196, 139, 53, 0.3)',
+    },
+    friendTagName: {
+      ...typography.caption,
+      color: c.textSecondary,
+      fontWeight: '500',
+    },
+    friendTagNameActive: {
+      color: c.accent,
+    },
+
+    // Location
+    locationInput: {
+      ...typography.body,
+      color: c.textPrimary,
+      borderWidth: 1,
+      borderColor: c.divider,
+      borderRadius: 10,
+      padding: 12,
+    },
+  }));
 
   const toggleFriendTag = useCallback((friendId: string) => {
     setTaggedFriends(prev =>
@@ -180,128 +307,3 @@ export function PhotoDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg },
-
-  // Photo
-  photoContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  photo: {
-    width: SCREEN_WIDTH - spacing.lg * 2,
-    height: (SCREEN_WIDTH - spacing.lg * 2) * 0.75,
-    borderRadius: 12,
-    backgroundColor: colors.backgroundDark,
-  },
-  photoPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderText: {
-    ...typography.body,
-    color: colors.textMuted,
-  },
-
-  // Sections
-  section: { marginBottom: spacing.md },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: spacing.sm,
-  },
-  sectionLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-
-  // Memo
-  memoInput: {
-    ...typography.body,
-    color: colors.textPrimary,
-    minHeight: 80,
-    textAlignVertical: 'top',
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: spacing.sm,
-  },
-  memoScopeRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  scopeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(160, 149, 133, 0.08)',
-    alignItems: 'center',
-  },
-  scopeBtnActive: {
-    backgroundColor: 'rgba(196, 139, 53, 0.15)',
-  },
-  scopeBtnText: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  scopeBtnTextActive: {
-    color: colors.accent,
-    fontWeight: '600',
-  },
-
-  // Friend tags
-  friendTagGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  friendTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    backgroundColor: 'rgba(160, 149, 133, 0.08)',
-  },
-  friendTagActive: {
-    backgroundColor: 'rgba(196, 139, 53, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(196, 139, 53, 0.3)',
-  },
-  friendTagName: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  friendTagNameActive: {
-    color: colors.accent,
-  },
-
-  // Location
-  locationInput: {
-    ...typography.body,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.divider,
-    borderRadius: 10,
-    padding: 12,
-  },
-});

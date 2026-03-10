@@ -17,7 +17,7 @@ export type RootStackParamList = {
   PhotoCrop: { photoUri: string; albumId: string; pageId: string; elementId: string };
   // Friend
   FriendProfile: { friendId: string };
-  AddFriend: undefined;
+  AddFriend: { tag?: string };
   // Collaboration
   InviteCollaborator: { albumId: string };
   // Page management
@@ -29,6 +29,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   // Settings
   ThemeSettings: undefined;
+  LanguageSettings: undefined;
   BackupRestore: undefined;
   StorageInfo: undefined;
   PrivacySettings: undefined;

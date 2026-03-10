@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Image,
   Dimensions,
   Pressable,
@@ -13,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft, Check, Crop } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { WarmBackground, IconButton } from '../components/common';
@@ -32,6 +32,7 @@ const CROP_PRESETS = [
 ];
 
 export function PhotoCropScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -39,6 +40,65 @@ export function PhotoCropScreen() {
 
   const { photoUri, albumId, pageId, elementId } = route.params;
   const [selectedPreset, setSelectedPreset] = useState(0);
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      color: c.textPrimary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    imageContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    image: { borderRadius: 8 },
+    overlayFull: {
+      position: 'absolute',
+      backgroundColor: 'rgba(44, 31, 16, 0.3)',
+      borderRadius: 8,
+    },
+    cropRect: {
+      position: 'absolute',
+      borderWidth: 2,
+      borderColor: c.warmWhite,
+      backgroundColor: 'transparent',
+    },
+    cropCorner: {
+      position: 'absolute',
+      width: 20,
+      height: 20,
+      borderColor: c.warmWhite,
+    },
+    cropTL: { top: -2, left: -2, borderTopWidth: 4, borderLeftWidth: 4 },
+    cropTR: { top: -2, right: -2, borderTopWidth: 4, borderRightWidth: 4 },
+    cropBL: { bottom: -2, left: -2, borderBottomWidth: 4, borderLeftWidth: 4 },
+    cropBR: { bottom: -2, right: -2, borderBottomWidth: 4, borderRightWidth: 4 },
+    presets: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      gap: 8,
+    },
+    presetBtn: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 16,
+      backgroundColor: c.cardBg,
+    },
+    presetBtnActive: { backgroundColor: c.accent },
+    presetLabel: { ...typography.caption, color: c.textSecondary, fontWeight: '600' },
+    presetLabelActive: { color: c.warmWhite },
+  }));
 
   const imageSize = SCREEN_WIDTH - 48;
 
@@ -135,61 +195,3 @@ export function PhotoCropScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  imageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  image: { borderRadius: 8 },
-  overlayFull: {
-    position: 'absolute',
-    backgroundColor: 'rgba(44, 31, 16, 0.3)',
-    borderRadius: 8,
-  },
-  cropRect: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: colors.warmWhite,
-    backgroundColor: 'transparent',
-  },
-  cropCorner: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    borderColor: colors.warmWhite,
-  },
-  cropTL: { top: -2, left: -2, borderTopWidth: 4, borderLeftWidth: 4 },
-  cropTR: { top: -2, right: -2, borderTopWidth: 4, borderRightWidth: 4 },
-  cropBL: { bottom: -2, left: -2, borderBottomWidth: 4, borderLeftWidth: 4 },
-  cropBR: { bottom: -2, right: -2, borderBottomWidth: 4, borderRightWidth: 4 },
-  presets: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  presetBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: colors.cardBg,
-  },
-  presetBtnActive: { backgroundColor: colors.accent },
-  presetLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
-  presetLabelActive: { color: colors.warmWhite },
-});

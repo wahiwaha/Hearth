@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   Pressable,
   Dimensions,
@@ -11,7 +10,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Sparkle, BookmarkSimple } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { WarmBackground, IconButton, GlassCard } from '../components/common';
 import { useTemplateStore } from '../store/TemplateStore';
 import { DecoTemplate } from '../types/album';
@@ -21,9 +21,65 @@ const CARD_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - 12) / 2;
 const CARD_HEIGHT = CARD_WIDTH * 1.35;
 
 export function TemplateGalleryScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { templates } = useTemplateStore();
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: { ...typography.subtitle, color: c.textPrimary, flex: 1, textAlign: 'center' },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg },
+
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 12,
+      marginTop: 8,
+    },
+    sectionTitle: { ...typography.label, color: c.textSecondary },
+
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+
+    card: { width: CARD_WIDTH, marginBottom: 4 },
+    cardPreview: {
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+      borderRadius: 10,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    slotPreview: {
+      position: 'absolute',
+      borderRadius: 4,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    slotText: { ...typography.caption, color: c.textMuted, fontSize: 9 },
+    cardInfo: { paddingTop: 6, paddingHorizontal: 2 },
+    cardName: { ...typography.body, color: c.textPrimary, fontSize: 13, fontWeight: '500' },
+    cardMeta: { ...typography.caption, color: c.textMuted, fontSize: 10, marginTop: 1 },
+    userBadge: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      backgroundColor: c.cardBg,
+      borderRadius: 10,
+      padding: 4,
+    },
+  }));
 
   const renderTemplate = useCallback((template: DecoTemplate, index: number) => {
     const photoSlots = template.elements.filter(e => e.type === 'photo').length;
@@ -124,57 +180,3 @@ export function TemplateGalleryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: { ...typography.subtitle, color: colors.textPrimary, flex: 1, textAlign: 'center' },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  sectionTitle: { ...typography.label, color: colors.textSecondary },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-
-  card: { width: CARD_WIDTH, marginBottom: 4 },
-  cardPreview: {
-    width: CARD_WIDTH,
-    height: CARD_HEIGHT,
-    borderRadius: 10,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  slotPreview: {
-    position: 'absolute',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  slotText: { ...typography.caption, color: colors.textMuted, fontSize: 9 },
-  cardInfo: { paddingTop: 6, paddingHorizontal: 2 },
-  cardName: { ...typography.body, color: colors.textPrimary, fontSize: 13, fontWeight: '500' },
-  cardMeta: { ...typography.caption, color: colors.textMuted, fontSize: 10, marginTop: 1 },
-  userBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: colors.cardBg,
-    borderRadius: 10,
-    padding: 4,
-  },
-});

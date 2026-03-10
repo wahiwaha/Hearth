@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   Pressable,
 } from 'react-native';
@@ -20,7 +19,8 @@ import {
   ArrowDown,
   BookOpen,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { WarmBackground, IconButton, GlassCard } from '../components/common';
@@ -32,6 +32,79 @@ type ImportMode = 'copy' | 'link';
 type ImportPosition = 'start' | 'end';
 
 export function AlbumImportScreen() {
+  const colors = useColors();
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: { ...typography.subtitle, color: c.textPrimary, flex: 1, textAlign: 'center' },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg },
+
+    sectionTitle: {
+      ...typography.label,
+      color: c.textSecondary,
+      marginTop: 20,
+      marginBottom: 10,
+    },
+
+    modeRow: { flexDirection: 'row', gap: 12 },
+    modeCard: {
+      flex: 1,
+      padding: 16,
+      borderRadius: 14,
+      backgroundColor: c.cardBg,
+      borderWidth: 2,
+      borderColor: 'transparent',
+      alignItems: 'center',
+      gap: 6,
+    },
+    modeCardActive: { borderColor: c.accent },
+    modeLabel: { ...typography.body, color: c.textPrimary, fontWeight: '600' },
+    modeLabelActive: { color: c.accent },
+    modeDesc: { ...typography.caption, color: c.textMuted, textAlign: 'center' },
+
+    posCard: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      padding: 14,
+      borderRadius: 14,
+      backgroundColor: c.cardBg,
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    posCardActive: { borderColor: c.accent },
+    posLabel: { ...typography.body, color: c.textPrimary, fontWeight: '500' },
+    posLabelActive: { color: c.accent },
+
+    albumRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 12,
+      borderRadius: 12,
+      marginBottom: 6,
+    },
+    albumRowActive: { backgroundColor: 'rgba(196, 139, 53, 0.08)' },
+    albumThumb: {
+      width: 44,
+      height: 44,
+      borderRadius: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    albumInfo: { flex: 1, marginLeft: 12 },
+    albumTitle: { ...typography.body, color: c.textPrimary, fontWeight: '500' },
+    albumMeta: { ...typography.caption, color: c.textMuted, marginTop: 2 },
+    emptyText: { ...typography.body, color: c.textMuted, textAlign: 'center', marginTop: 40 },
+  }));
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -145,74 +218,3 @@ export function AlbumImportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: { ...typography.subtitle, color: colors.textPrimary, flex: 1, textAlign: 'center' },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg },
-
-  sectionTitle: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginTop: 20,
-    marginBottom: 10,
-  },
-
-  modeRow: { flexDirection: 'row', gap: 12 },
-  modeCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 14,
-    backgroundColor: colors.cardBg,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    gap: 6,
-  },
-  modeCardActive: { borderColor: colors.accent },
-  modeLabel: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
-  modeLabelActive: { color: colors.accent },
-  modeDesc: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
-
-  posCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: colors.cardBg,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  posCardActive: { borderColor: colors.accent },
-  posLabel: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  posLabelActive: { color: colors.accent },
-
-  albumRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 6,
-  },
-  albumRowActive: { backgroundColor: 'rgba(196, 139, 53, 0.08)' },
-  albumThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  albumInfo: { flex: 1, marginLeft: 12 },
-  albumTitle: { ...typography.body, color: colors.textPrimary, fontWeight: '500' },
-  albumMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
-  emptyText: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginTop: 40 },
-});

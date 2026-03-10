@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Dimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import Animated, {
   SharedValue,
   useAnimatedStyle,
@@ -9,19 +10,15 @@ import Animated, {
   interpolate,
   Extrapolation,
   useSharedValue,
-  runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const CAPSULE_WIDTH = 120;
-const CAPSULE_HEIGHT = 6;
 const DOT_SIZE = 4;
-const DOT_GAP = 14;
+const DOT_GAP = 12;
 const ACTIVE_DOT_WIDTH = 16;
-const TOTAL_PAGES = 3;
-const FADE_DELAY_MS = 800;
+const VISIBLE_DURATION_MS = 1200; // how long it stays visible after scroll stops
 
 interface Props {
   scrollX: SharedValue<number>;
@@ -32,16 +29,18 @@ export function CapsulePageIndicator({ scrollX, isScrolling }: Props) {
   const insets = useSafeAreaInsets();
   const opacity = useSharedValue(0);
 
-  // Track scrolling state changes to drive opacity
+  // Hidden by default. Appears during scroll, stays briefly, then fades out.
   useDerivedValue(() => {
     if (isScrolling.value) {
-      opacity.value = withTiming(1, { duration: 150 });
+      opacity.value = withTiming(1, { duration: 120 });
     } else {
-      opacity.value = withDelay(FADE_DELAY_MS, withTiming(0, { duration: 400 }));
+      opacity.value = withDelay(
+        VISIBLE_DURATION_MS,
+        withTiming(0, { duration: 300 }),
+      );
     }
   });
 
-  // Capsule container fade
   const capsuleStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
     transform: [
@@ -49,93 +48,80 @@ export function CapsulePageIndicator({ scrollX, isScrolling }: Props) {
         translateY: interpolate(
           opacity.value,
           [0, 1],
-          [-8, 0],
+          [-6, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+      {
+        scale: interpolate(
+          opacity.value,
+          [0, 1],
+          [0.92, 1],
           Extrapolation.CLAMP,
         ),
       },
     ],
   }));
 
-  // Current page progress (0..2)
-  const pageProgress = useDerivedValue(() =>
-    scrollX.value / SCREEN_WIDTH,
-  );
+  const pageProgress = useDerivedValue(() => scrollX.value / SCREEN_WIDTH);
 
-  // Dot styles for each page
-  const dot0Style = useAnimatedStyle(() => {
-    const active = interpolate(
-      pageProgress.value,
-      [-0.5, 0, 0.5],
-      [0, 1, 0],
-      Extrapolation.CLAMP,
-    );
-    return {
-      width: interpolate(active, [0, 1], [DOT_SIZE, ACTIVE_DOT_WIDTH]),
-      opacity: interpolate(active, [0, 1], [0.35, 1]),
-      borderRadius: DOT_SIZE / 2,
-    };
-  });
+  const makeDotStyle = (page: number) =>
+    useAnimatedStyle(() => {
+      const active = interpolate(
+        pageProgress.value,
+        [page - 0.5, page, page + 0.5],
+        [0, 1, 0],
+        Extrapolation.CLAMP,
+      );
+      return {
+        width: interpolate(active, [0, 1], [DOT_SIZE, ACTIVE_DOT_WIDTH]),
+        opacity: interpolate(active, [0, 1], [0.25, 1]),
+        borderRadius: DOT_SIZE / 2,
+      };
+    });
 
-  const dot1Style = useAnimatedStyle(() => {
-    const active = interpolate(
-      pageProgress.value,
-      [0.5, 1, 1.5],
-      [0, 1, 0],
-      Extrapolation.CLAMP,
-    );
-    return {
-      width: interpolate(active, [0, 1], [DOT_SIZE, ACTIVE_DOT_WIDTH]),
-      opacity: interpolate(active, [0, 1], [0.35, 1]),
-      borderRadius: DOT_SIZE / 2,
-    };
-  });
-
-  const dot2Style = useAnimatedStyle(() => {
-    const active = interpolate(
-      pageProgress.value,
-      [1.5, 2, 2.5],
-      [0, 1, 0],
-      Extrapolation.CLAMP,
-    );
-    return {
-      width: interpolate(active, [0, 1], [DOT_SIZE, ACTIVE_DOT_WIDTH]),
-      opacity: interpolate(active, [0, 1], [0.35, 1]),
-      borderRadius: DOT_SIZE / 2,
-    };
-  });
+  const dot0Style = makeDotStyle(0);
+  const dot1Style = makeDotStyle(1);
+  const dot2Style = makeDotStyle(2);
 
   return (
     <Animated.View
-      style={[
-        styles.capsule,
-        { top: insets.top + 8 },
-        capsuleStyle,
-      ]}
+      style={[styles.wrapper, { top: insets.top + 8 }, capsuleStyle]}
       pointerEvents="none"
     >
-      <Animated.View style={[styles.dot, dot0Style]} />
-      <Animated.View style={[styles.dot, dot1Style]} />
-      <Animated.View style={[styles.dot, dot2Style]} />
+      <BlurView intensity={25} tint="light" style={styles.blur}>
+        <Animated.View style={[styles.dot, dot0Style]} />
+        <Animated.View style={[styles.dot, dot1Style]} />
+        <Animated.View style={[styles.dot, dot2Style]} />
+      </BlurView>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  capsule: {
+  wrapper: {
     position: 'absolute',
     alignSelf: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
+    zIndex: 100,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(180, 160, 130, 0.20)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+  },
+  blur: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: DOT_GAP,
-    backgroundColor: 'rgba(44, 31, 16, 0.3)',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 100,
   },
   dot: {
     height: DOT_SIZE,
-    backgroundColor: '#FDFAF5',
+    backgroundColor: '#C49242',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,7 +22,6 @@ interface ScreenItem {
   component: React.ComponentType;
 }
 
-// Order: Friends(Hearth) ← Archive(center) → MyPage
 const screens: ScreenItem[] = [
   { key: 'friends', component: FriendsScreen },
   { key: 'archive', component: HearthScreen },

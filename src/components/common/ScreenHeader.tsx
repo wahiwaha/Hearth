@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../../theme';
+import { typography, spacing, useThemedStyles } from '../../theme';
+import { useColors } from '../../store/ThemeStore';
 
 interface ScreenHeaderProps {
   title: string;
@@ -23,6 +24,44 @@ export function ScreenHeader({
   animated = true,
 }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+
+  const styles = useThemedStyles((colors) => ({
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+    },
+    leftSlot: {
+      width: 44,
+      alignItems: 'flex-start' as const,
+    },
+    center: {
+      flex: 1,
+      alignItems: 'center' as const,
+    },
+    rightSlot: {
+      width: 44,
+      alignItems: 'flex-end' as const,
+    },
+    placeholder: {
+      width: 44,
+    },
+    backButton: {
+      padding: 4,
+    },
+    title: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+      fontSize: 20,
+    },
+    subtitle: {
+      ...typography.caption,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+  }));
 
   const content = (
     <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -55,40 +94,3 @@ export function ScreenHeader({
 
   return content;
 }
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-  },
-  leftSlot: {
-    width: 44,
-    alignItems: 'flex-start',
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  rightSlot: {
-    width: 44,
-    alignItems: 'flex-end',
-  },
-  placeholder: {
-    width: 44,
-  },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    fontSize: 20,
-  },
-  subtitle: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-});

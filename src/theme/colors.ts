@@ -41,6 +41,7 @@ const lightColors = {
   overlay: 'rgba(44, 31, 16, 0.45)',
   cardBg: 'rgba(253, 250, 245, 0.92)',
   glass: 'rgba(247, 242, 234, 0.72)',
+  glassBorder: 'rgba(160, 140, 110, 0.18)',
   divider: 'rgba(160, 149, 133, 0.12)',
 
   // Status
@@ -93,6 +94,7 @@ const darkColors = {
   overlay: 'rgba(10, 8, 5, 0.65)',
   cardBg: 'rgba(38, 32, 24, 0.92)',
   glass: 'rgba(30, 25, 18, 0.72)',
+  glassBorder: 'rgba(120, 108, 92, 0.18)',
   divider: 'rgba(120, 108, 92, 0.15)',
 
   // Status

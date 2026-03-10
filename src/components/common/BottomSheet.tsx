@@ -15,7 +15,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, typography, spacing } from '../../theme';
+import { typography, spacing, useThemedStyles } from '../../theme';
+import { useColors } from '../../store/ThemeStore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -35,8 +36,55 @@ export function BottomSheet({
   height = SCREEN_HEIGHT * 0.5,
 }: BottomSheetProps) {
   const insets = useSafeAreaInsets();
+  const colors = useColors();
   const translateY = useSharedValue(height);
   const overlayOpacity = useSharedValue(0);
+
+  const styles = useThemedStyles((colors) => ({
+    root: {
+      flex: 1,
+      justifyContent: 'flex-end' as const,
+    },
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(28, 18, 8, 0.45)',
+    },
+    sheet: {
+      backgroundColor: colors.warmWhite,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      paddingHorizontal: spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 20,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.textMuted,
+      opacity: 0.3,
+      alignSelf: 'center' as const,
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    header: {
+      paddingVertical: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.divider,
+      marginBottom: spacing.sm,
+    },
+    title: {
+      ...typography.subtitle,
+      color: colors.textPrimary,
+      textAlign: 'center' as const,
+    },
+    content: {
+      flex: 1,
+    },
+  }));
 
   useEffect(() => {
     if (visible) {
@@ -84,49 +132,3 @@ export function BottomSheet({
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(28, 18, 8, 0.45)',
-  },
-  sheet: {
-    backgroundColor: colors.warmWhite,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 20,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textMuted,
-    opacity: 0.3,
-    alignSelf: 'center',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  header: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.divider,
-    marginBottom: spacing.sm,
-  },
-  title: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
-  content: {
-    flex: 1,
-  },
-});

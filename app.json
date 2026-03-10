@@ -15,8 +15,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.wahiwaha.Hearth",
       "googleServicesFile": "./GoogleService-Info.plist",
+      "usesAppleSignIn": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "프로필 사진과 앨범에 사용할 사진을 선택하기 위해 갤러리 접근이 필요합니다.",
+        "NSCameraUsageDescription": "프로필 사진을 촬영하기 위해 카메라 접근이 필요합니다."
       }
     },
     "android": {
@@ -35,19 +38,41 @@
     },
     "plugins": [
       "./plugins/withFirebaseModularHeaders",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       "expo-font",
       "expo-sharing",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/crashlytics",
       "@react-native-firebase/messaging",
+      "@react-native-google-signin/google-signin",
       "@sentry/react-native/expo",
       [
         "expo-notifications",
         {
           "icon": "./assets/icon.png"
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "프로필 사진과 앨범에 사용할 사진을 선택하기 위해 갤러리 접근이 필요합니다.",
+          "cameraPermission": "프로필 사진을 촬영하기 위해 카메라 접근이 필요합니다."
+        }
+      ],
+      "expo-image",
+      "expo-video",
+      "expo-audio",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-background-task"
     ],
     "extra": {
       "eas": {

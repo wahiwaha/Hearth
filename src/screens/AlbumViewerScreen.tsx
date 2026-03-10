@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   Pressable,
   Dimensions,
@@ -36,26 +35,125 @@ import {
   Export,
   BookOpen,
 } from 'phosphor-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
-import { WarmBackground, IconButton, GlassCard } from '../components/common';
+import { WarmBackground, IconButton, GlassCard, Avatar } from '../components/common';
 import { AlbumPage } from '../types/album';
+import { PageCurlBook } from '../components/PageCurlBook';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'AlbumViewer'>;
 
-type ViewMode = 'grid2' | 'grid4' | 'single' | 'gallery';
+type ViewMode = 'grid2' | 'grid4' | 'single' | 'book';
 
 const VIEW_MODES: { mode: ViewMode; label: string; icon: typeof GridFour; cols: number }[] = [
+  { mode: 'book', label: '책', icon: BookOpen, cols: 1 },
   { mode: 'single', label: '1장', icon: Rows, cols: 1 },
   { mode: 'grid2', label: '2장', icon: GridFour, cols: 2 },
   { mode: 'grid4', label: '4장', icon: SquaresFour, cols: 4 },
 ];
 
 export function AlbumViewerScreen() {
+  const colors = useColors();
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    notFound: { ...typography.body, color: c.textMuted, textAlign: 'center', marginTop: 100 },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerCenter: { flex: 1, alignItems: 'center' },
+    headerTitle: { ...typography.subtitle, color: c.textPrimary, fontSize: 20 },
+    headerSubtitle: { ...typography.caption, color: c.textSecondary, marginTop: 2 },
+
+    toolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    viewToggle: {
+      flexDirection: 'row',
+      backgroundColor: c.cardBg,
+      borderRadius: 8,
+      overflow: 'hidden',
+    },
+    viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 7 },
+    viewToggleBtnActive: { backgroundColor: c.textSecondary, borderRadius: 8 },
+
+    collaboratorAvatars: {
+      flex: 1,
+      flexDirection: 'row',
+      justifyContent: 'center',
+      paddingHorizontal: 8,
+    },
+    miniAvatar: {
+      width: 28, height: 28, borderRadius: 14,
+      justifyContent: 'center', alignItems: 'center',
+      borderWidth: 2, borderColor: c.background,
+    },
+    miniAvatarText: { color: c.textOnDark, fontSize: 10, fontWeight: '600' },
+
+    toolbarRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    addPageBtn: {
+      shadowColor: c.accent,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+    grid: { flexDirection: 'row', flexWrap: 'wrap' },
+
+    gridPage: {
+      borderRadius: 8,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    pageNumber: {
+      position: 'absolute',
+      top: 6, right: 6,
+      ...typography.caption,
+      color: c.textMuted,
+      fontSize: 10,
+    },
+    elementPreview: { position: 'absolute', borderRadius: 3 },
+    textPreview: { position: 'absolute', ...typography.caption, color: c.textSecondary },
+    stickerPreview: { position: 'absolute' },
+    emptyPage: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyPageText: { ...typography.caption, color: c.textMuted, marginTop: 6 },
+
+    addPageCard: {
+      borderWidth: 1.5,
+      borderColor: c.divider,
+      borderStyle: 'dashed',
+      backgroundColor: 'rgba(251, 248, 244, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 8,
+    },
+    addPageText: { ...typography.caption, color: c.textMuted, marginTop: 8 },
+
+    bookContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: spacing.sm,
+    },
+  }));
+
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -81,7 +179,7 @@ export function AlbumViewerScreen() {
   }, [album, addPage, navigation]);
 
   const cycleViewMode = useCallback(() => {
-    const modes: ViewMode[] = ['single', 'grid2', 'grid4'];
+    const modes: ViewMode[] = ['book', 'single', 'grid2', 'grid4'];
     const idx = modes.indexOf(viewMode);
     const next = modes[(idx + 1) % modes.length];
     setViewMode(next);
@@ -148,20 +246,22 @@ export function AlbumViewerScreen() {
 
         {album.isShared && album.collaborators && (
           <View style={styles.collaboratorAvatars}>
-            {album.collaborators.slice(0, 3).map((c, i) => (
+            {album.collaborators.slice(0, 4).map((c, i) => (
               <View
                 key={c.id}
-                style={[
-                  styles.miniAvatar,
-                  { backgroundColor: c.avatarColor, marginLeft: i > 0 ? -8 : 0, zIndex: 3 - i },
-                ]}
+                style={{ marginLeft: i > 0 ? -8 : 0, zIndex: 4 - i }}
               >
-                <Text style={styles.miniAvatarText}>{c.initial}</Text>
+                <Avatar
+                  initial={c.initial}
+                  color={c.avatarColor}
+                  imageUrl={c.avatarUrl}
+                  size={24}
+                />
               </View>
             ))}
-            {album.collaborators.length > 3 && (
+            {album.collaborators.length > 4 && (
               <View style={[styles.miniAvatar, { backgroundColor: colors.textMuted, marginLeft: -8 }]}>
-                <Text style={styles.miniAvatarText}>+{album.collaborators.length - 3}</Text>
+                <Text style={styles.miniAvatarText}>+{album.collaborators.length - 4}</Text>
               </View>
             )}
           </View>
@@ -185,57 +285,76 @@ export function AlbumViewerScreen() {
         </View>
       </Animated.View>
 
-      {/* Page grid */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.grid, { gap: GRID_GAP }]}>
-          {pages.map((page, index) => (
-            <Animated.View
-              key={page.id}
-              entering={FadeInDown.delay(80 + index * 30).duration(350)}
-            >
-              <PageCard
-                page={page}
-                width={gridPageWidth}
-                height={gridPageHeight}
-                compact={viewMode === 'grid4'}
-                onPress={() => handlePagePress(page)}
-              />
-            </Animated.View>
-          ))}
-
-          {/* Add page card */}
-          <Animated.View entering={FadeInDown.delay(80 + pages.length * 30).duration(350)}>
-            <Pressable
-              style={[
-                styles.addPageCard,
-                { width: gridPageWidth, height: gridPageHeight },
-              ]}
-              onPress={handleAddPage}
-            >
-              <Plus size={viewMode === 'grid4' ? 20 : 32} color={colors.textMuted} />
-              {viewMode !== 'grid4' && <Text style={styles.addPageText}>페이지 추가</Text>}
-            </Pressable>
-          </Animated.View>
+      {/* Book view (page curl) */}
+      {viewMode === 'book' && pages.length > 0 ? (
+        <View style={styles.bookContainer}>
+          <PageCurlBook
+            pages={pages}
+            initialPageIndex={0}
+            pageWidth={SCREEN_WIDTH - spacing.lg * 2}
+            pageHeight={(SCREEN_WIDTH - spacing.lg * 2) * 1.35}
+            onPageChange={(idx) => {
+              if (album) setLastViewedPage(album.id, pages[idx]?.id);
+            }}
+            onPageTap={(page) => handlePagePress(page)}
+          />
         </View>
-      </ScrollView>
+      ) : (
+        /* Page grid */
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.grid, { gap: GRID_GAP }]}>
+            {pages.map((page, index) => (
+              <Animated.View
+                key={page.id}
+                entering={FadeInDown.delay(80 + index * 30).duration(350)}
+              >
+                <PageCard
+                  page={page}
+                  width={gridPageWidth}
+                  height={gridPageHeight}
+                  compact={viewMode === 'grid4'}
+                  onPress={() => handlePagePress(page)}
+                  styles={styles}
+                />
+              </Animated.View>
+            ))}
+
+            {/* Add page card */}
+            <Animated.View entering={FadeInDown.delay(80 + pages.length * 30).duration(350)}>
+              <Pressable
+                style={[
+                  styles.addPageCard,
+                  { width: gridPageWidth, height: gridPageHeight },
+                ]}
+                onPress={handleAddPage}
+              >
+                <Plus size={viewMode === 'grid4' ? 20 : 32} color={colors.textMuted} />
+                {viewMode !== 'grid4' && <Text style={styles.addPageText}>페이지 추가</Text>}
+              </Pressable>
+            </Animated.View>
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 /** Individual page card rendering */
 function PageCard({
-  page, width, height, compact, onPress,
+  page, width, height, compact, onPress, styles,
 }: {
   page: AlbumPage;
   width: number;
   height: number;
   compact: boolean;
   onPress: () => void;
+  styles: any;
 }) {
+  const colors = useColors();
   return (
     <Pressable
       style={[styles.gridPage, { width, height, backgroundColor: page.backgroundColor }]}
@@ -313,90 +432,3 @@ function PageCard({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  notFound: { ...typography.body, color: colors.textMuted, textAlign: 'center', marginTop: 100 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { ...typography.subtitle, color: colors.textPrimary, fontSize: 20 },
-  headerSubtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-
-  toolbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: colors.cardBg,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-  viewToggleBtn: { paddingHorizontal: 10, paddingVertical: 7 },
-  viewToggleBtnActive: { backgroundColor: colors.textSecondary, borderRadius: 10 },
-
-  collaboratorAvatars: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  miniAvatar: {
-    width: 28, height: 28, borderRadius: 14,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2, borderColor: colors.warmWhite,
-  },
-  miniAvatarText: { color: colors.textOnDark, fontSize: 10, fontWeight: '600' },
-
-  toolbarRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  addPageBtn: {
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-
-  gridPage: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  pageNumber: {
-    position: 'absolute',
-    top: 6, right: 6,
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 10,
-  },
-  elementPreview: { position: 'absolute', borderRadius: 3 },
-  textPreview: { position: 'absolute', ...typography.caption, color: colors.textSecondary },
-  stickerPreview: { position: 'absolute' },
-  emptyPage: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyPageText: { ...typography.caption, color: colors.textMuted, marginTop: 6 },
-
-  addPageCard: {
-    borderWidth: 2,
-    borderColor: colors.divider,
-    borderStyle: 'dashed',
-    backgroundColor: 'rgba(253, 250, 245, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  addPageText: { ...typography.caption, color: colors.textMuted, marginTop: 8 },
-});

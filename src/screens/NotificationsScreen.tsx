@@ -20,32 +20,13 @@ import {
   Checks,
 } from 'phosphor-react-native';
 import * as Haptics from 'expo-haptics';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing, useThemedStyles } from '../theme';
+import { useColors } from '../store/ThemeStore';
 import { WarmBackground, IconButton, Avatar } from '../components/common';
 import { useNotificationStore, NotificationType } from '../store/NotificationStore';
 import { RootStackParamList } from '../types/navigation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-const notificationIcon = (type: NotificationType) => {
-  switch (type) {
-    case 'album_invite': return <BookOpen size={16} color={colors.warmWhite} />;
-    case 'photo_added': return <Camera size={16} color={colors.warmWhite} />;
-    case 'friend_request': return <UserPlus size={16} color={colors.warmWhite} />;
-    case 'album_update': return <Heart size={16} color={colors.warmWhite} />;
-    case 'reminder': return <Bell size={16} color={colors.warmWhite} />;
-  }
-};
-
-const notificationColor = (type: NotificationType) => {
-  switch (type) {
-    case 'album_invite': return colors.accent;
-    case 'photo_added': return colors.sage;
-    case 'friend_request': return colors.dustyRose;
-    case 'album_update': return '#7B8FA3';
-    case 'reminder': return '#D4A855';
-  }
-};
 
 function formatTime(date: Date): string {
   const now = Date.now();
@@ -61,6 +42,7 @@ function formatTime(date: Date): string {
 }
 
 export function NotificationsScreen() {
+  const colors = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const {
@@ -69,6 +51,92 @@ export function NotificationsScreen() {
     markAsRead,
     markAllAsRead,
   } = useNotificationStore();
+
+  const notificationIcon = (type: NotificationType) => {
+    switch (type) {
+      case 'album_invite': return <BookOpen size={16} color={colors.warmWhite} />;
+      case 'photo_added': return <Camera size={16} color={colors.warmWhite} />;
+      case 'friend_request': return <UserPlus size={16} color={colors.warmWhite} />;
+      case 'album_update': return <Heart size={16} color={colors.warmWhite} />;
+      case 'reminder': return <Bell size={16} color={colors.warmWhite} />;
+    }
+  };
+
+  const notificationColor = (type: NotificationType) => {
+    switch (type) {
+      case 'album_invite': return colors.accent;
+      case 'photo_added': return colors.sage;
+      case 'friend_request': return colors.dustyRose;
+      case 'album_update': return '#7B8FA3';
+      case 'reminder': return '#D4A855';
+    }
+  };
+
+  const styles = useThemedStyles((c) => ({
+    root: { flex: 1 },
+    header: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    headerTitle: {
+      ...typography.subtitle,
+      color: c.textPrimary,
+      flex: 1,
+      textAlign: 'center' as const,
+    },
+    scroll: { flex: 1 },
+    scrollContent: { paddingHorizontal: spacing.lg },
+
+    notifRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRadius: 12,
+      marginBottom: 4,
+    },
+    notifUnread: {
+      backgroundColor: 'rgba(196, 146, 66, 0.06)',
+    },
+    notifAvatarContainer: {
+      position: 'relative' as const,
+    },
+    notifTypeBadge: {
+      position: 'absolute' as const,
+      bottom: -2,
+      right: -2,
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      borderWidth: 1.5,
+      borderColor: c.background,
+    },
+    notifContent: { flex: 1, marginLeft: 14 },
+    notifTitle: { ...typography.caption, color: c.textSecondary, fontWeight: '600' as const },
+    notifMessage: { ...typography.body, color: c.textPrimary, fontSize: 14, marginTop: 2, lineHeight: 20 },
+    notifTime: { ...typography.caption, color: c.textMuted, marginTop: 4 },
+    unreadDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: c.accent,
+      marginTop: 6,
+    },
+
+    empty: {
+      alignItems: 'center' as const,
+      paddingTop: 80,
+    },
+    emptyText: {
+      ...typography.body,
+      color: c.textMuted,
+      marginTop: 16,
+    },
+  }));
 
   const handleNotifPress = useCallback((notif: typeof notifications[0]) => {
     if (!notif.read) {
@@ -112,7 +180,7 @@ export function NotificationsScreen() {
         {notifications.map((notif, index) => (
           <Animated.View
             key={notif.id}
-            entering={FadeInDown.delay(50 + index * 60).duration(400)}
+            entering={FadeInDown.delay(50 + index * 40).duration(350)}
           >
             <Pressable
               style={[
@@ -147,69 +215,3 @@ export function NotificationsScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: spacing.lg },
-
-  notifRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 4,
-  },
-  notifUnread: {
-    backgroundColor: 'rgba(196, 139, 53, 0.06)',
-  },
-  notifAvatarContainer: {
-    position: 'relative',
-  },
-  notifTypeBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.warmWhite,
-  },
-  notifContent: { flex: 1, marginLeft: 14 },
-  notifTitle: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
-  notifMessage: { ...typography.body, color: colors.textPrimary, fontSize: 14, marginTop: 2, lineHeight: 20 },
-  notifTime: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.accent,
-    marginTop: 6,
-  },
-
-  empty: {
-    alignItems: 'center',
-    paddingTop: 80,
-  },
-  emptyText: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: 16,
-  },
-});

@@ -89,6 +89,7 @@ export interface Collaborator {
   name: string;
   initial: string;
   avatarColor: string;
+  avatarUrl?: string;
   role: 'owner' | 'editor';
   joinedAt: Date;
 }
