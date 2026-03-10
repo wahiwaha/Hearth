@@ -45,8 +45,33 @@ export function AlbumStoreProvider({ children }: { children: ReactNode }) {
   const [pinnedAlbumId, setPinnedAlbumId] = useState<string | null>(dummyAlbums[0]?.id || null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // 현재 사용자 정보를 collaborator에 실시간 반영
+  const resolvedAlbums = useMemo(() => {
+    if (!user) return albums;
+    return albums.map(album => {
+      if (!album.collaborators?.length) return album;
+      const hasMe = album.collaborators.some(c => c.id === 'me' || c.id === user.uid);
+      if (!hasMe) return album;
+      return {
+        ...album,
+        collaborators: album.collaborators.map(c =>
+          (c.id === 'me' || c.id === user.uid)
+            ? {
+                ...c,
+                id: user.uid,
+                name: user.displayName || c.name,
+                initial: user.initial || c.initial,
+                avatarColor: user.avatarColor || c.avatarColor,
+                avatarUrl: user.photoURL || c.avatarUrl,
+              }
+            : c
+        ),
+      };
+    });
+  }, [albums, user]);
+
   // Map 기반 O(1) 앨범 조회
-  const albumMap = useMemo(() => new Map(albums.map(a => [a.id, a])), [albums]);
+  const albumMap = useMemo(() => new Map(resolvedAlbums.map(a => [a.id, a])), [resolvedAlbums]);
 
   // Firestore 실시간 구독 — 로그인 시 서버 데이터 사용, 삭제 앨범은 지연 구독
   const deletedSubRef = useRef<(() => void) | null>(null);
@@ -362,13 +387,13 @@ export function AlbumStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const contextValue = useMemo(() => ({
-    albums, deletedAlbums, pinnedAlbumId, isLoading, getAlbum, createAlbum, updateAlbum,
+    albums: resolvedAlbums, deletedAlbums, pinnedAlbumId, isLoading, getAlbum, createAlbum, updateAlbum,
     deleteAlbum, restoreAlbum, permanentlyDeleteAlbum, pinAlbum, duplicateAlbum,
     addPage, deletePage, reorderPages, updatePage,
     addElement, updateElement, deleteElement, batchUpdateElements,
     setVisibility, addCollaborator, removeCollaborator,
     importAlbum, removeImportedAlbum, setLastViewedPage,
-  }), [albums, deletedAlbums, pinnedAlbumId, isLoading, getAlbum, createAlbum, updateAlbum,
+  }), [resolvedAlbums, deletedAlbums, pinnedAlbumId, isLoading, getAlbum, createAlbum, updateAlbum,
     deleteAlbum, restoreAlbum, permanentlyDeleteAlbum, pinAlbum, duplicateAlbum,
     addPage, deletePage, reorderPages, updatePage,
     addElement, updateElement, deleteElement, batchUpdateElements,

@@ -45,7 +45,6 @@ import { RootStackParamList } from '../types/navigation';
 import { useAlbumStore } from '../store/AlbumStore';
 import { useNotificationStore } from '../store/NotificationStore';
 import { IconButton, WarmBackground, Avatar } from '../components/common';
-import { WoodBackground } from '../components/WoodBackground';
 import { useT } from '../i18n';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -132,7 +131,7 @@ function AlbumCover({ album, size, height: h }: { album: Album; size: number; he
   );
 }
 
-/* ─── Album Page Component (placeholder) ─── */
+/* ─── Single Album Page Component ─── */
 function AlbumPageView({ album, pageIndex, size, height: h }: { album: Album; pageIndex: number; size: number; height?: number }) {
   const styles = useThemedStyles(createStyles);
   const page = album.pages?.[pageIndex];
@@ -161,37 +160,128 @@ function AlbumPageView({ album, pageIndex, size, height: h }: { album: Album; pa
   );
 }
 
-/* ─── Pinned Album with auto-flip ─── */
+/* ─── Two-page Spread Component (양면 펼침) ─── */
+function SpreadPageView({ album, spreadIndex, size, height: h }: { album: Album; spreadIndex: number; size: number; height?: number }) {
+  const styles = useThemedStyles(createStyles);
+  const pageH = h || size;
+  const halfW = Math.floor(size / 2) - 2; // 2px for spine gap
+  const leftIdx = spreadIndex * 2;
+  const rightIdx = spreadIndex * 2 + 1;
+  const leftPage = album.pages?.[leftIdx];
+  const rightPage = album.pages?.[rightIdx];
+  const leftBg = leftPage?.backgroundColor || '#F4EDE2';
+  const rightBg = rightPage?.backgroundColor || '#F4EDE2';
+
+  return (
+    <View style={[styles.spreadView, { width: size, height: pageH }]}>
+      {/* Left page */}
+      <View style={[styles.spreadHalf, { width: halfW, height: pageH, backgroundColor: leftBg, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 }]}>
+        <View style={styles.pageLines}>
+          {[0.2, 0.35, 0.5, 0.65, 0.8].map((p, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                top: pageH * p,
+                left: halfW * 0.1,
+                right: halfW * 0.05,
+                height: StyleSheet.hairlineWidth,
+                backgroundColor: 'rgba(160,140,120,0.12)',
+              }}
+            />
+          ))}
+        </View>
+        {leftPage && <Text style={[styles.pageNumber, { left: 8, right: undefined }]}>{leftIdx + 1}</Text>}
+        {/* Gutter shadow on right edge */}
+        <View style={styles.gutterShadowRight} />
+      </View>
+
+      {/* Spine line */}
+      <View style={styles.spineGap} />
+
+      {/* Right page */}
+      <View style={[styles.spreadHalf, { width: halfW, height: pageH, backgroundColor: rightBg, borderTopRightRadius: 10, borderBottomRightRadius: 10 }]}>
+        <View style={styles.pageLines}>
+          {[0.2, 0.35, 0.5, 0.65, 0.8].map((p, i) => (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                top: pageH * p,
+                left: halfW * 0.05,
+                right: halfW * 0.1,
+                height: StyleSheet.hairlineWidth,
+                backgroundColor: 'rgba(160,140,120,0.12)',
+              }}
+            />
+          ))}
+        </View>
+        {rightPage && <Text style={styles.pageNumber}>{rightIdx + 1}</Text>}
+        {/* Gutter shadow on left edge */}
+        <View style={styles.gutterShadowLeft} />
+      </View>
+    </View>
+  );
+}
+
+/* ─── Pinned Album with auto-flip + manual swipe ─── */
+/* Slide 0 = cover (single), Slide 1+ = spread (2 pages side by side) */
 function PinnedAlbum({ album, onPress }: { album: Album; onPress: () => void }) {
   const styles = useThemedStyles(createStyles);
   const pageCount = album.pages?.length || 0;
-  const totalSlides = 1 + pageCount;
+  const spreadCount = Math.ceil(pageCount / 2); // number of 2-page spreads
+  const totalSlides = 1 + spreadCount; // cover + spreads
   const [currentSlide, setCurrentSlide] = useState(0);
   const flipProgress = useSharedValue(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swipeX = useSharedValue(0);
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const advanceSlide = useCallback(() => {
-    setCurrentSlide(prev => (prev + 1) % totalSlides);
+  const goToSlide = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(idx, totalSlides - 1));
+    flipProgress.value = withSequence(
+      withTiming(1, { duration: 500, easing: Easing.inOut(Easing.cubic) }),
+      withTiming(0, { duration: 0 }),
+    );
+    setTimeout(() => setCurrentSlide(clamped), 250);
   }, [totalSlides]);
 
+  const advanceSlide = useCallback(() => {
+    goToSlide((currentSlide + 1) % totalSlides);
+  }, [currentSlide, totalSlides, goToSlide]);
+
+  const resetAutoTimer = useCallback(() => {
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+    const tick = () => {
+      autoTimerRef.current = setTimeout(() => {
+        advanceSlide();
+        tick();
+      }, 5000);
+    };
+    tick();
+  }, [advanceSlide]);
+
   useEffect(() => {
-    let flipTimer: ReturnType<typeof setTimeout> | null = null;
-    const startTimer = () => {
-      timerRef.current = setTimeout(() => {
-        flipProgress.value = withSequence(
-          withTiming(1, { duration: 600, easing: Easing.inOut(Easing.cubic) }),
-          withTiming(0, { duration: 0 }),
-        );
-        flipTimer = setTimeout(() => advanceSlide(), 300);
-        startTimer();
-      }, 4000);
-    };
-    startTimer();
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (flipTimer) clearTimeout(flipTimer);
-    };
-  }, [totalSlides, advanceSlide]);
+    resetAutoTimer();
+    return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current); };
+  }, [currentSlide, resetAutoTimer]);
+
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-15, 15])
+    .onUpdate((e) => { swipeX.value = e.translationX; })
+    .onEnd((e) => {
+      const threshold = PINNED_ALBUM_W * 0.12;
+      if (e.translationX < -threshold && currentSlide < totalSlides - 1) {
+        runOnJS(goToSlide)(currentSlide + 1);
+        runOnJS(resetAutoTimer)();
+      } else if (e.translationX > threshold && currentSlide > 0) {
+        runOnJS(goToSlide)(currentSlide - 1);
+        runOnJS(resetAutoTimer)();
+      }
+      swipeX.value = withSpring(0, { damping: 20 });
+    });
+
+  const tapGesture = Gesture.Tap().onEnd(() => { runOnJS(onPress)(); });
+  const gesture = Gesture.Exclusive(swipeGesture, tapGesture);
 
   const flipStyle = useAnimatedStyle(() => {
     const rotateY = interpolate(flipProgress.value, [0, 0.5, 1], [0, -90, 0]);
@@ -201,6 +291,7 @@ function PinnedAlbum({ album, onPress }: { album: Album; onPress: () => void }) 
         { perspective: 800 },
         { rotateY: `${rotateY}deg` },
         { scaleX },
+        { translateX: swipeX.value * 0.2 },
       ],
     };
   });
@@ -209,23 +300,28 @@ function PinnedAlbum({ album, onPress }: { album: Album; onPress: () => void }) 
     shadowOpacity: interpolate(flipProgress.value, [0, 0.5, 1], [0.15, 0.35, 0.15]),
   }));
 
+  // Slide label for indicator
+  const slideLabel = currentSlide === 0
+    ? '표지'
+    : `${currentSlide * 2 - 1}-${Math.min(currentSlide * 2, pageCount)}`;
+
   return (
     <View style={styles.pinnedSection}>
       <Animated.View style={[styles.pinnedAlbumWrap, shadowStyle]}>
-        <Pressable onPress={onPress}>
+        <GestureDetector gesture={gesture}>
           <Animated.View style={flipStyle}>
             {currentSlide === 0 ? (
               <AlbumCover album={album} size={PINNED_ALBUM_W} height={PINNED_ALBUM_H} />
             ) : (
-              <AlbumPageView
+              <SpreadPageView
                 album={album}
-                pageIndex={currentSlide - 1}
+                spreadIndex={currentSlide - 1}
                 size={PINNED_ALBUM_W}
                 height={PINNED_ALBUM_H}
               />
             )}
           </Animated.View>
-        </Pressable>
+        </GestureDetector>
       </Animated.View>
 
       {/* Page indicator dots */}
@@ -259,7 +355,8 @@ function AlbumPopup({
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
   const pageCount = album.pages?.length || 0;
-  const totalSlides = 1 + pageCount; // cover + pages
+  const spreadCount = Math.ceil(pageCount / 2);
+  const totalSlides = 1 + spreadCount; // cover + spreads
   const [currentPage, setCurrentPage] = useState(0);
 
   // Slide-up animation
@@ -389,9 +486,9 @@ function AlbumPopup({
             {currentPage === 0 ? (
               <AlbumCover album={album} size={POPUP_W} height={POPUP_H} />
             ) : (
-              <AlbumPageView
+              <SpreadPageView
                 album={album}
-                pageIndex={currentPage - 1}
+                spreadIndex={currentPage - 1}
                 size={POPUP_W}
                 height={POPUP_H}
               />
@@ -428,7 +525,7 @@ function AlbumPopup({
             <View style={styles.popupInfoLeft}>
               <Text style={styles.popupAlbumTitle} numberOfLines={1}>{album.title}</Text>
               <Text style={styles.popupAlbumMeta}>
-                {currentPage === 0 ? '표지' : `${currentPage} / ${pageCount}페이지`}
+                {currentPage === 0 ? '표지' : `${currentPage * 2 - 1}-${Math.min(currentPage * 2, pageCount)} / ${pageCount}페이지`}
                 {' · '}{album.isShared ? '공유' : '개인'}
               </Text>
             </View>
@@ -696,7 +793,7 @@ export function HearthScreen() {
 
   return (
     <View style={styles.root}>
-      <WoodBackground />
+      <WarmBackground />
 
       {/* Header */}
       <View style={[styles.headerWrap, { paddingTop: insets.top }]}>
@@ -708,11 +805,11 @@ export function HearthScreen() {
           <View style={styles.headerRight}>
             {pinnedAlbum && (
               <Pressable style={styles.headerIconBtn} onPress={handleEditPinned}>
-                <PencilSimple size={20} color="rgba(220,210,195,0.8)" />
+                <PencilSimple size={20} color={colors.textSecondary} />
               </Pressable>
             )}
             <Pressable style={styles.bellContainer} onPress={() => navigation.navigate('Notifications')}>
-              <Bell size={22} color="#F0E8DB" />
+              <Bell size={22} color={colors.textPrimary} />
               {unreadCount > 0 && (
                 <View style={styles.bellBadge}>
                   <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -749,7 +846,7 @@ export function HearthScreen() {
               </Animated.View>
             ) : (
               <Animated.View entering={FadeIn.duration(300)} style={styles.emptyPinned}>
-                <PushPin size={28} color="rgba(200,190,170,0.5)" weight="thin" />
+                <PushPin size={28} color={colors.textMuted} weight="thin" />
                 <Text style={styles.emptyPinnedText}>
                   앨범을 길게 눌러 여기로 드래그하세요
                 </Text>
@@ -789,7 +886,7 @@ export function HearthScreen() {
         {deletedAlbums.length > 0 && (
           <Animated.View entering={FadeInDown.delay(300).duration(400)}>
             <View style={styles.sectionHeader}>
-              <Trash size={16} color="rgba(200,190,170,0.5)" />
+              <Trash size={16} color={colors.textMuted} />
               <Text style={styles.sectionTitle}>삭제된 앨범</Text>
               <Text style={styles.sectionCount}>{deletedAlbums.length}</Text>
             </View>
@@ -844,12 +941,12 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
     paddingVertical: 14,
   },
   headerTitleArea: { alignItems: 'flex-start' as const },
-  headerTitle: { ...typography.title, color: '#F0E8DB', fontSize: 28, textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
-  headerSubtitle: { ...typography.caption, color: 'rgba(220,210,195,0.7)', marginTop: 2 },
+  headerTitle: { ...typography.title, color: c.textPrimary, fontSize: 28 },
+  headerSubtitle: { ...typography.caption, color: c.textMuted, marginTop: 2 },
   headerRight: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: 4 },
   headerDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(180,160,130,0.15)',
+    backgroundColor: c.divider,
     marginHorizontal: spacing.lg,
   },
   bellContainer: { width: 40, height: 40, justifyContent: 'center' as const, alignItems: 'center' as const },
@@ -930,7 +1027,7 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
   },
   emptyPinnedText: {
     ...typography.body,
-    color: 'rgba(200,190,170,0.6)',
+    color: c.textMuted,
     fontSize: 14,
   },
 
@@ -960,6 +1057,51 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
     ...typography.caption,
     color: c.textMuted,
     fontSize: 11,
+    position: 'absolute' as const,
+    bottom: 6,
+    right: 8,
+  },
+
+  // Spread (two-page) view
+  spreadView: {
+    flexDirection: 'row' as const,
+    borderRadius: 10,
+    overflow: 'hidden' as const,
+  },
+  spreadHalf: {
+    overflow: 'hidden' as const,
+    justifyContent: 'flex-end' as const,
+    alignItems: 'center' as const,
+    paddingBottom: 12,
+  },
+  spineGap: {
+    width: 4,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  gutterShadowRight: {
+    position: 'absolute' as const,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: 12,
+    backgroundColor: 'transparent',
+    borderRightWidth: 0,
+    // Use overlay gradient effect via shadow
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+  },
+  gutterShadowLeft: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
   },
 
   // Section headers
@@ -972,16 +1114,13 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
   },
   sectionTitle: {
     ...typography.subtitle,
-    color: '#F0E8DB',
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: '700' as const,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
   sectionCount: {
     ...typography.caption,
-    color: 'rgba(220,210,195,0.6)',
+    color: c.textMuted,
     fontSize: 12,
   },
 
@@ -1016,9 +1155,9 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
     alignItems: 'center' as const,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(30,22,14,0.55)',
+    backgroundColor: c.glass,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(140,120,90,0.15)',
+    borderColor: c.glassBorder,
   },
   deletedCoverWrap: {
     borderRadius: 6,
@@ -1030,7 +1169,7 @@ const createStyles = (c: ReturnType<typeof useColors>) => ({
   },
   deletedTitle: {
     ...typography.body,
-    color: 'rgba(220,210,195,0.8)',
+    color: c.textSecondary,
     fontWeight: '500' as const,
     fontSize: 14,
     marginBottom: 6,

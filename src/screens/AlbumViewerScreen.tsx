@@ -160,7 +160,7 @@ export function AlbumViewerScreen() {
   const { getAlbum, addPage, setLastViewedPage } = useAlbumStore();
 
   const album = getAlbum(route.params.albumId);
-  const [viewMode, setViewMode] = useState<ViewMode>('grid2');
+  const [viewMode, setViewMode] = useState<ViewMode>('book');
 
   const pages = useMemo(() => album?.pages || [], [album]);
 
@@ -290,11 +290,12 @@ export function AlbumViewerScreen() {
         <View style={styles.bookContainer}>
           <PageCurlBook
             pages={pages}
+            coverColor={album.coverColor}
+            spineColor={album.spineColor}
+            title={album.title}
             initialPageIndex={0}
-            pageWidth={SCREEN_WIDTH - spacing.lg * 2}
-            pageHeight={(SCREEN_WIDTH - spacing.lg * 2) * 1.35}
             onPageChange={(idx) => {
-              if (album) setLastViewedPage(album.id, pages[idx]?.id);
+              if (album && pages[idx]) setLastViewedPage(album.id, pages[idx].id);
             }}
             onPageTap={(page) => handlePagePress(page)}
           />

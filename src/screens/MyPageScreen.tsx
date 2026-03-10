@@ -51,7 +51,8 @@ import { Avatar, GlassCard, WarmBackground } from '../components/common';
 import { useT } from '../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const COVER_HEIGHT = 160;
+const COVER_WIDTH = SCREEN_WIDTH - 44; // frameOuter(32) + coverWrap margin(12)
+const COVER_HEIGHT = Math.round(COVER_WIDTH * 9 / 16); // 16:9 비율
 const AVATAR_SIZE = 88;
 const AVATAR_OVERLAP = AVATAR_SIZE / 2;
 
@@ -97,7 +98,7 @@ export function MyPageScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
-      aspect: type === 'profile' ? [1, 1] : [3, 1],
+      aspect: type === 'profile' ? [1, 1] : [16, 9],
       quality: 0.8,
     });
     if (!result.canceled && result.assets[0]) {
@@ -199,7 +200,7 @@ export function MyPageScreen() {
                 end={{ x: 1, y: 1 }}
               />
               {/* Frame inner bevel */}
-              <View style={styles.frameInnerBevel}>
+              <View style={styles.frameInnerBevel} pointerEvents="none">
                 <LinearGradient
                   colors={['rgba(255,240,210,0.15)', 'rgba(0,0,0,0.05)']}
                   style={StyleSheet.absoluteFill}
@@ -236,10 +237,10 @@ export function MyPageScreen() {
               </View>
 
               {/* Frame corner ornaments */}
-              <View style={[styles.frameCorner, styles.frameCornerTL]} />
-              <View style={[styles.frameCorner, styles.frameCornerTR]} />
-              <View style={[styles.frameCorner, styles.frameCornerBL]} />
-              <View style={[styles.frameCorner, styles.frameCornerBR]} />
+              <View style={[styles.frameCorner, styles.frameCornerTL]} pointerEvents="none" />
+              <View style={[styles.frameCorner, styles.frameCornerTR]} pointerEvents="none" />
+              <View style={[styles.frameCorner, styles.frameCornerBL]} pointerEvents="none" />
+              <View style={[styles.frameCorner, styles.frameCornerBR]} pointerEvents="none" />
             </View>
 
             {/* Avatar — overlapping frame bottom edge */}
